@@ -1,0 +1,66 @@
+\= util.cene (part of Cene Scaffold)
+\= Copyright 2016 Ross Angle. Released under the MIT License.
+
+(def-macro istr mode unique-ns definition-ns my-stx-details args
+  (let s (fn it /stx my-stx-details it)
+  /let mac
+    (fn str rest
+      (cons (c s /foreign/macro-name mode definition-ns str) rest))
+  /cast args cons istr args
+    err.\;qq[Called istr without enough arguments]
+  /cast args nil
+    err.\;qq[Called istr with too many arguments]
+  /cast istr stx - istr
+    err.\;qq[Called istr with an argument that wasn't a stx]
+  /let loop
+    (fix/fn loop istr
+      (case istr
+        
+        istring-cons prefix interpolation rest
+        (c s /c mac str.string-append
+        /cons (c s /c mac str.str /cons (c s istring-nil.prefix) /nil)
+        /cons
+          (c s /c mac str.string-append
+          /cons interpolation
+          /cons (c loop rest)
+          /nil)
+        /nil)
+        
+        istring-nil suffix
+        (c s /c mac str.str /cons (c s istring-nil.suffix) /nil)
+        
+        err.\;qq[
+          Called istr with a value that wasn't an interpolated
+          string]))
+  /compile-expression mode unique-ns definition-ns (c loop istr)
+  /fn mode /no-effects/nil))
+
+(defn copy-paths mode in out
+  (case (input-path-type mode in)
+    
+    file-type-directory
+    (foldr (input-path-directory-list mode in) (no-effects/nil)
+    /fn item then
+      (bind-effects
+        (c-new copy-paths mode
+          (input-path-get in item)
+          (output-path-get out item))
+      /fn -
+        then))
+    
+    file-type-blob
+    (output-path-blob-utf-8 out /input-path-blob-utf-8 mode in)
+    
+  /no-effects/nil))
+
+(defn make-quine mode definition-ns out string-name
+  (output-path-blob-utf-8 out
+  /sloppy-javascript-quine mode
+  /procure-name mode
+  /ns-get-string str.tag
+  /ns-get-name
+    (procure-name mode
+    /ns-get-string str.name
+    /ns-get-string string-name
+    /ns-get-string str.constructor-names definition-ns)
+  /ns-get-string str.constructors definition-ns))

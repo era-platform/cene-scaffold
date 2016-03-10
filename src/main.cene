@@ -1,0 +1,65 @@
+\= main.cene (part of Cene Scaffold)
+\= Copyright 2016 Ross Angle. Released under the MIT License.
+
+(defn js-client-main mode
+/javascript-sync str.client (list/assoc str.nil /nil) str.\;qq;yp/
+    
+    console.log( "Hello, client!" );
+    
+    return client.done( nil );
+)
+
+(defn js-server-main mode
+/javascript-sync str.client (list/assoc str.nil /nil) str.\;qq;yp/
+    
+    var require = process.mainModule.require;
+    var __filename = process.mainModule.filename;
+    
+    var express = process.mainModule.require( "express" );
+    var $path = process.mainModule.require( "path" );
+    
+    var __dirname = $path.dirname( __filename );
+    
+    var app = express();
+    app.use( express.static( $path.resolve( __dirname, "static" ) ) );
+    app.listen( 8080, function () {
+        console.log( "Hello, port 8080!" );
+    } );
+    
+    return client.done( nil );
+)
+
+(def-macro go mode unique-ns definition-ns my-stx-details args
+  (let s (fn it /stx my-stx-details it)
+  /let mac
+    (fn str rest
+      (cons (c s /foreign/macro-name mode definition-ns str) rest))
+  /let place istr.\;qq[build]
+  /bind-effects
+    (output-path-blob-utf-8
+      (output-path-get cli-output-directory.mode
+        str.\;qq[hello-build.txt])
+      istr.\;qq[Hello \;uq;ls`place`.\n])
+  /fn -
+  /bind-effects
+    (copy-paths mode
+      (input-path-get cli-input-directory.mode str.raw)
+      cli-output-directory.mode)
+  /fn -
+  /bind-effects
+    (make-quine mode definition-ns
+      (output-path-get
+        (output-path-get cli-output-directory.mode str.\;qq[static])
+        str.\;qq[client.js])
+      str.js-client-main)
+  /fn -
+  /bind-effects
+    (make-quine mode definition-ns
+      (output-path-get cli-output-directory.mode str.\;qq[server.js])
+      str.js-server-main)
+  /fn -
+  /compile-expression mode unique-ns definition-ns
+    (c s /c mac str.nil /nil)
+  /fn mode /no-effects/nil))
+
+(go)
