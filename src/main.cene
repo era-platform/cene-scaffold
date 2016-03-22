@@ -1,17 +1,18 @@
 \= main.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
-(defn js-client-main mode
-/javascript-sync str.client (list/assoc str.nil /nil) str.\;qq;yp/
+(defn js-client-main client
+/compile-give-unwrapped-js-effects str.client client str.\;qq;yp/
     
     console.log( "Hello, client!" );
     
-    return client.done( nil );
+    return client.done( client.wrap( null ) );
 )
 
-(defn js-server-main mode
-/javascript-sync str.client (list/assoc str.nil /nil) str.\;qq;yp/
+(defn js-server-main client
+/compile-give-unwrapped-js-effects str.client client str.\;qq;yp/
     
+    /*
     var require = process.mainModule.require;
     var __filename = process.mainModule.filename;
     
@@ -19,6 +20,12 @@
     var $path = process.mainModule.require( "path" );
     
     var __dirname = $path.dirname( __filename );
+    */
+    
+    var require = client.getTopLevelVar( "require" );
+    var __dirname = client.getTopLevelVar( "__dirname" );
+    var express = require( "express" );
+    var $path = require( "path" );
     
     var app = express();
     app.use( express.static( $path.resolve( __dirname, "static" ) ) );
@@ -26,7 +33,7 @@
         console.log( "Hello, port 8080!" );
     } );
     
-    return client.done( nil );
+    return client.done( client.wrap( null ) );
 )
 
 (def-macro go mode unique-ns definition-ns my-stx-details args
@@ -51,12 +58,14 @@
       (output-path-get
         (output-path-get cli-output-directory.mode str.\;qq[static])
         str.\;qq[client.js])
-      str.js-client-main)
+      str.js-client-main
+    /list)
   /fn -
   /bind-effects
     (make-quine mode definition-ns
       (output-path-get cli-output-directory.mode str.\;qq[server.js])
-      str.js-server-main)
+      str.js-server-main
+    /list str.require str.__dirname)
   /fn -
   /compile-expression mode unique-ns definition-ns
     (c s /c mac str.nil /nil)
