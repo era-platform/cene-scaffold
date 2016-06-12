@@ -1,11 +1,14 @@
 \= util.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
-(def-macro istr mode unique-ns definition-ns my-stx-details args
+(def-macro istr mode unique-ns definition-ns my-stx-details args then
   (let s (fn it /stx my-stx-details it)
   /let mac
     (fn str rest
       (cons (c s /foreign/macro-name mode definition-ns str) rest))
+  /let outbox (ns-get-string str.outbox unique-ns)
+  /bind-effects (later/fn mode /c then /procure-defined mode outbox)
+  /fn -
   /cast args cons istr args
     err.\;qq[Called istr without enough arguments]
   /cast args nil
@@ -32,8 +35,11 @@
         err.\;qq[
           Called istr with a value that wasn't an interpolated
           string]))
-  /compile-expression mode unique-ns definition-ns (c loop istr)
-  /fn mode /no-effects/nil))
+  /compile-expression mode
+    (ns-get-string str.unique unique-ns)
+    definition-ns
+    (c loop istr)
+    outbox))
 
 (defn copy-paths mode in out
   (case (input-path-type mode in)
