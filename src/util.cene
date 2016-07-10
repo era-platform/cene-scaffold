@@ -1,14 +1,17 @@
 \= util.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
+(defn fix func
+  (fn arg
+    (c func (c-new fix func) arg)))
+
 (def-macro istr mode unique-ns definition-ns my-stx-details args then
   (let s (fn it /stx my-stx-details it)
   /let mac
     (fn str rest
       (cons (c s /foreign/macro-name mode definition-ns str) rest))
   /let outbox (ns-get-string str.outbox unique-ns)
-  /bind-effects (later/fn mode /c then /procure-defined mode outbox)
-  /fn -
+  /join-effects (later/fn mode /c then /procure-defined mode outbox)
   /cast args cons istr args
     err.\;qq[Called istr without enough arguments]
   /cast args nil
@@ -47,11 +50,10 @@
     file-type-directory
     (foldr (input-path-directory-list mode in) (no-effects/nil)
     /fn item then
-      (bind-effects
+      (join-effects
         (c-new copy-paths mode
           (input-path-get in item)
           (output-path-get out item))
-      /fn -
         then))
     
     file-type-blob

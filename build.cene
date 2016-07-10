@@ -6,7 +6,7 @@
 \= def-macro let fn stx cons c foreign macro-name foldl
 \= cli-input-directory cast err input-path-get foldr read-all-force
 \= input-path-blob-utf-8 folding no-effects nil ns-get-string str
-\= compile-expression bind-effects
+\= compile-expression join-effects
 
 (def-macro import
   mode unique-ns definition-ns my-stx-details args then
@@ -31,7 +31,7 @@
         err.\;qq[Internal error]
       /folding (ns-get-string str.rest unique-ns)
       /fn mode
-      /bind-effects (c launch-rest mode) /fn -
+      /join-effects (c launch-rest mode)
       /let first-ns (ns-get-string str.first unique-ns)
       /compile-expression mode
         (ns-get-string str.unique first-ns)
@@ -40,10 +40,9 @@
         (ns-get-string str.outbox first-ns)))
     folding unique-ns launch-rest
     err.\;qq[Internal error]
-  /bind-effects (c launch-rest mode) /fn -
+  /join-effects (c launch-rest mode)
   /let outbox (ns-get-string str.outbox unique-ns)
-  /bind-effects (later/fn mode /c then /procure-defined mode outbox)
-  /fn -
+  /join-effects (later/fn mode /c then /procure-defined mode outbox)
   /compile-expression mode
     (ns-get-string str.unique unique-ns)
     definition-ns

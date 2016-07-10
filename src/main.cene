@@ -42,34 +42,29 @@
     (fn str rest
       (cons (c s /foreign/macro-name mode definition-ns str) rest))
   /let outbox (ns-get-string str.outbox unique-ns)
-  /bind-effects (later/fn mode /c then /procure-defined mode outbox)
-  /fn -
+  /join-effects (later/fn mode /c then /procure-defined mode outbox)
   /let place istr.\;qq[build]
-  /bind-effects
+  /join-effects
     (output-path-blob-utf-8
       (output-path-get cli-output-directory.mode
         str.\;qq[hello-build.txt])
       istr.\;qq[Hello \;uq;ls`place`.\n])
-  /fn -
-  /bind-effects
+  /join-effects
     (copy-paths mode
       (input-path-get cli-input-directory.mode str.raw)
       cli-output-directory.mode)
-  /fn -
-  /bind-effects
+  /join-effects
     (make-quine mode definition-ns
       (output-path-get
         (output-path-get cli-output-directory.mode str.\;qq[static])
         str.\;qq[client.js])
       str.js-client-main
     /list)
-  /fn -
-  /bind-effects
+  /join-effects
     (make-quine mode definition-ns
       (output-path-get cli-output-directory.mode str.\;qq[server.js])
       str.js-server-main
     /list str.require str.__dirname)
-  /fn -
   /compile-expression mode
     (ns-get-string str.unique unique-ns)
     definition-ns
