@@ -5,13 +5,9 @@
   (fn arg
     (c func (c-new fix func) arg)))
 
-(def-macro istr mode unique-ns definition-ns my-stx-details args then
-  (let s (fn it /stx my-stx-details it)
-  /let mac
-    (fn str rest
-      (cons (c s /foreign/macro-name mode definition-ns str) rest))
-  /let outbox (ns-get-string str.outbox unique-ns)
-  /join-effects (later/fn mode /c then /procure-defined mode outbox)
+(def-macro istr unique-ns definition-ns my-stx-details args then
+  (basic-pure-macro unique-ns definition-ns my-stx-details then
+  /fn unique-ns s mac
   /cast args cons istr args
     err.\;qq[Called istr without enough arguments]
   /cast args nil
@@ -38,11 +34,7 @@
         err.\;qq[
           Called istr with a value that wasn't an interpolated
           string]))
-  /compile-expression mode
-    (ns-get-string str.unique unique-ns)
-    definition-ns
-    (c loop istr)
-    outbox))
+  /c loop istr))
 
 (defn copy-paths mode in out
   (case (input-path-type mode in)
