@@ -39,13 +39,14 @@
 (def-macro go unique-ns definition-ns my-stx-details args then
   (basic-nil-macro unique-ns definition-ns my-stx-details then
   /fn unique-ns s mac
+  /c istr.\;qq[build] /fn place
+  /c istr.\;qq[Hello \;uq;ls`place`.\n] /fn hello-place
   /get-mode/fn mode
-  /let place istr.\;qq[build]
   /join-effects
     (output-path-blob-utf-8
       (output-path-get cli-output-directory.mode
         str.\;qq[hello-build.txt])
-      istr.\;qq[Hello \;uq;ls`place`.\n])
+      hello-place)
   /join-effects
     (copy-paths mode
       (input-path-get cli-input-directory.mode str.raw)

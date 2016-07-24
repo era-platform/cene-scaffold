@@ -5,6 +5,11 @@
   (fn arg
     (c func (c-new fix func) arg)))
 
+(defn strings-append-later strings then
+  (foldl-later str.\;qq[] strings
+    (fn state elem then /string-append-later state elem then)
+    then))
+
 (def-macro istr unique-ns definition-ns my-stx-details args then
   (basic-pure-macro unique-ns definition-ns my-stx-details then
   /fn unique-ns s mac
@@ -19,21 +24,17 @@
       (case istr
         
         istring-cons prefix interpolation rest
-        (c s /c mac str.string-append
-        /cons (c s /c mac str.str /cons (c s istring-nil.prefix) /nil)
-        /cons
-          (c s /c mac str.string-append
-          /cons interpolation
-          /cons (c loop rest)
-          /nil)
-        /nil)
+        (cons (c s /c mac str.str /list/c s istring-nil.prefix)
+        /cons interpolation
+        /c loop rest)
         
         istring-nil suffix
-        (c s /c mac str.str /cons (c s istring-nil.suffix) /nil)
+        (list/c s /c mac str.str /list/c s istring-nil.suffix)
         
         err.\;qq[
           Called istr with a value that wasn't an interpolated
           string]))
+  /c s /c mac str.strings-append-later /list/c s /c mac str.list
   /c loop istr))
 
 (defn copy-paths mode in out
