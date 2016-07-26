@@ -1,13 +1,6 @@
 \= build.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
-\= NOTE: This file depends on the following macros:
-\=
-\= def-macro let fn stx cons c foreign macro-name foldl
-\= cli-input-directory cast err input-path-get foldr read-all-force
-\= input-path-blob-utf-8 folding no-effects nil ns-get-string str
-\= compile-expression join-effects
-
 (def-macro import unique-ns definition-ns my-stx-details args then
   (basic-nil-macro unique-ns definition-ns my-stx-details then
   /fn unique-ns s mac
@@ -33,7 +26,7 @@
         (ns-get-string str.unique first-ns)
         definition-ns
         expr
-        (ns-get-string str.outbox first-ns)))
+        (procure-definer/ns-get-string str.outbox first-ns)))
     folding unique-ns launch-rest
     err.\;qq[Internal error]
     
