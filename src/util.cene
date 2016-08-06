@@ -57,14 +57,11 @@
 (defn make-quine mode definition-ns out string-name top-level-vars
   (output-path-blob-utf-8 out
   /sloppy-javascript-quine mode
-    (procure-name mode
-    /ns-get-string str.tag
-    /ns-get-name
-      (procure-name mode
-      /ns-get-string str.name
-      /ns-get-string string-name
-      /ns-get-string str.constructor-names definition-ns)
-    /ns-get-string str.constructors definition-ns)
+    (procure-name mode /ns-path definition-ns /list
+      str.constructors
+      (procure-name mode /ns-path definition-ns /list
+        str.constructor-names string-name str.name)
+      str.tag)
     top-level-vars))
 
 (defn compile-give-unwrapped-js-effects param js-val body
