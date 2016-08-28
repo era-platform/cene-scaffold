@@ -1,17 +1,13 @@
 \= util.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
-(defn fix func
-  (fn arg
-    (c func (c-new fix func) arg)))
-
 (defn strings-append-later strings then
   (foldl-later str.\;qq[] strings
     (fn state elem then /string-append-later state elem then)
     then))
 
-(def-macro istr unique-ns definition-ns my-stx-details args then
-  (basic-pure-macro unique-ns definition-ns my-stx-details then
+(def-macro istr home-scope caller-scope my-stx-details args then
+  (basic-pure-macro home-scope caller-scope my-stx-details then
   /fn unique-ns s mac
   /cast args cons istr args
     err.\;qq[Called istr without enough arguments]
@@ -44,7 +40,7 @@
     (foldr (input-path-directory-list mode in) (no-effects/nil)
     /fn item then
       (join-effects
-        (c-new copy-paths mode
+        (copy-paths mode
           (input-path-get in item)
           (output-path-get out item))
         then))
@@ -54,14 +50,20 @@
     
   /no-effects/nil))
 
-(defn make-quine mode definition-ns out string-name top-level-vars
-  (output-path-blob-utf-8 out
+(defn make-quine mode scope out string-name top-level-vars
+  (cast scope scope - def-ns qualify
+    err.\;qq[Expected a scope value of type scope]
+  /output-path-blob-utf-8 out
   /sloppy-javascript-quine mode
-    (procure-name mode /ns-path definition-ns /list
-      str.constructors
-      (procure-name mode /ns-path definition-ns /list
-        str.constructor-names string-name str.name)
-      str.tag)
+    (cast
+      (procure-constructor-glossary-getdef def-ns
+      /c qualify /name-of/dexable (dex-string/nil) string-name)
+      getdef get def
+      err.\;qq[Internal error]
+    /cast (c get mode)
+      constructor-glossary main-tag proj-source-to-rep
+      err.\;qq[Internal error]
+      main-tag)
     top-level-vars))
 
 (defn compile-give-unwrapped-js-effects param js-val body

@@ -36,8 +36,8 @@
     return client.done( client.wrap( null ) );
 )
 
-(def-macro go unique-ns definition-ns my-stx-details args then
-  (basic-nil-macro unique-ns definition-ns my-stx-details then
+(def-macro go home-scope caller-scope my-stx-details args then
+  (basic-nil-macro home-scope caller-scope my-stx-details then
   /fn unique-ns s mac
   /c istr.\;qq[build] /fn place
   /c istr.\;qq[Hello \;uq;ls`place`.\n] /fn hello-place
@@ -52,14 +52,14 @@
       (input-path-get cli-input-directory.mode str.raw)
       cli-output-directory.mode)
   /join-effects
-    (make-quine mode definition-ns
+    (make-quine mode home-scope
       (output-path-get
         (output-path-get cli-output-directory.mode str.\;qq[static])
         str.\;qq[client.js])
       str.js-client-main
     /list)
   /join-effects
-    (make-quine mode definition-ns
+    (make-quine mode home-scope
       (output-path-get cli-output-directory.mode str.\;qq[server.js])
       str.js-server-main
     /list str.require str.__dirname)

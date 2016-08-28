@@ -1,8 +1,10 @@
 \= build.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
-(def-macro import unique-ns definition-ns my-stx-details args then
-  (basic-nil-macro unique-ns definition-ns my-stx-details then
+(def-macro import home-scope caller-scope my-stx-details args then
+  (cast caller-scope scope - caller-def-ns caller-qualify
+    err.\;qq[Internal error]
+  /basic-nil-macro home-scope caller-scope my-stx-details then
   /fn unique-ns s mac
   /get-mode/fn mode
   /let path
@@ -22,10 +24,12 @@
       /folding (ns-get str.rest unique-ns)
       /join-effects launch-rest
       /let first-ns (ns-get str.first unique-ns)
-      /make-promise-later/fn outbox-definer get-outbox
+      /make-promise-later/fn outbox-getdef
+      /cast outbox-getdef getdef get-outbox outbox-definer
+        err.\;qq[Internal error]
       /compile-expression
-        (ns-get str.unique first-ns)
-        definition-ns
+        (scope (ns-get str.unique first-ns)
+          caller-def-ns caller-qualify)
         expr
         outbox-definer))
     folding unique-ns launch-rest
