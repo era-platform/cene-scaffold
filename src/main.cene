@@ -66,3 +66,216 @@
   /no-effects/nil))
 
 (go)
+
+
+\= Text variations ===================================================
+
+\= Inform 7 and Inkle implement a system they call text variations.
+\= Each time a piece of code is run, it generates a different string
+\= by cycling or proceeding through several options. This requires
+\= keeping track of state that's unique to that section of the code,
+\= but shared between all invocations of that section of the code.
+\= (They allow some randomness too, but we don't deal with that here.)
+\=
+\= In Cene, we can obtain a name with the right scope of uniqueness by
+\= way of a macro call's caller scope's unique namespace. Then we can
+\= use that to generate a similarly unique name at run time. To
+\= illustrate, we implement an expression `(uniq-name)` that results
+\= in a name that's unique up to the lexical location the expression
+\= appears in.
+\=
+\= Then we use this name as the key in a table, and we use `qdo` as
+\= sugar for a state monad where that table is the state. With this
+\= technique, we achieve a verbose but macro-expressibly equivalent
+\= syntax for using "cycling" and "stopping" text variations in Cene.
+\=
+\=
+\= Inform 7:
+\=
+\= "The clock struck [one of]twelve[or]three[or]six[or]nine[cycling],
+\= and the mouse [one of]ran up the clock[or]ran down the clock[or]was
+\= not impressed[stopping]."
+\=
+\=
+\= Ink:
+\=
+\= The clock struck {&twelve|three|six|nine}, and the mouse
+\= {ran up the clock|ran down the clock|was not impressed}.
+\=
+\=
+\= Cene:
+\=
+\= (pass-to (tvary-then) /qdo/^/qq/-/tvary-later-done
+\=   istr.\;qq[
+\=     The clock struck
+\=     \;uq;ls[^/uq/-/tvary-cycling (uniq-name) /list
+\=       (tvary-done str.\;qq[twelve])
+\=       (tvary-done str.\;qq[three])
+\=       (tvary-done str.\;qq[six])
+\=       (tvary-done str.\;qq[nine])
+\=     ],
+\=     and the mouse
+\=     \;uq;ls[^/uq/-/tvary-stopping (uniq-name) /list
+\=       (tvary-done str.\;qq[ran up the clock])
+\=       (tvary-done str.\;qq[ran down the clock])
+\=       (tvary-done str.\;qq[was not impressed])
+\=     ].])
+\=
+\=
+\= First six consecutive outputs:
+\=
+\= The clock struck twelve, and the mouse ran up the clock.
+\= The clock struck three, and the mouse ran down the clock.
+\= The clock struck six, and the mouse was not impressed.
+\= The clock struck nine, and the mouse was not impressed.
+\= The clock struck twelve, and the mouse was not impressed.
+\= The clock struck three, and the mouse was not impressed.
+\=
+\=
+\= This sample is executed whenever this project is built, and the
+\= sample outputs are written to fin/tvary-demo.txt.
+
+\= TODO: See if we should factor this section out into a separate
+\= codebase.
+
+(defn pass-to arg func
+  (c func arg))
+
+(def-macro uniq-dexable
+  home-scope caller-scope my-stx-details args then
+  (cast caller-scope
+    scope caller-unique-ns caller-def-ns caller-qualify
+    err.\;qq[Internal error]
+  /cast args nil
+    err.\;qq[Called uniq-dexable with more than zero arguments]
+  /join-effects procure-claim.caller-unique-ns
+  /get-mode/fn mode
+  /let main-tag-name
+    (procure-name mode /ns-get str.main-tag-name caller-unique-ns)
+  /basic-pure-macro home-scope
+    (scope (ns-get str.body caller-unique-ns)
+      caller-def-ns caller-qualify)
+    my-stx-details
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.dexable /list
+    (c s /foreign/obtain-directly/cexpr-dex-struct main-tag-name
+    /list)
+    (c s /foreign/obtain-directly/cexpr-construct main-tag-name
+    /list)))
+
+(def-macro uniq-name home-scope caller-scope my-stx-details args then
+  (cast args nil
+    err.\;qq[Called uniq-name with more than zero arguments]
+  /basic-pure-macro home-scope caller-scope my-stx-details then
+  /fn unique-ns s mac
+  /c s /c mac str.name-of /list/c s /c mac str.uniq-dexable /list))
+
+(defn is-proper-list list
+  (case list
+    nil (yep/nil)
+    cons - rest is-proper-list.rest
+  /nope/nil))
+
+(defn tvary-stopping name list
+  (cast is-proper-list.list yep -
+    err.\;qq[Expected a list that was a proper list]
+  /case list nil
+    err.\;qq[Expected a list that was a nonempty list]
+  /fn state then
+    (later
+    /let old-list (case (table-get name state) yep list list list)
+    /cast old-list cons chosen-tvary rest
+      err.\;qq[
+        In the state of tvary-stopping, expected a list that was a
+        nonempty proper list]
+    /let new-list
+      (case rest
+        nil old-list
+        cons - -b rest
+        err.\;qq[
+          In the state of tvary-stopping, expected a list that was a
+          proper list])
+    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+
+(defn tvary-cycling name list
+  (cast is-proper-list.list yep -
+    err.\;qq[Expected a list that was a proper list]
+  /case list nil
+    err.\;qq[Expected a list that was a nonempty list]
+  /fn state then
+    (later
+    /let old-list (case (table-get name state) yep list list list)
+    /cast old-list cons chosen-tvary rest
+      err.\;qq[
+        In the state of tvary-cycling, expected a list that was a
+        nonempty proper list]
+    /let new-list
+      (case rest
+        nil list
+        cons - -b rest
+        err.\;qq[
+          In the state of tvary-cycling, expected a list that was a
+          proper list])
+    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+
+(defn tvary-then tvary next state then
+  (c tvary state /fn result
+  /cast result folding state result
+    err.\;qq[Expected a tvary result that was a folding]
+  /c next result state then))
+
+(defn tvary-done result state then
+  (c-later then /folding state result))
+
+(defn tvary-later-done result-later state then
+  (c result-later /fn result /c then /folding state result))
+
+(defn tvary-demo-later then
+  (let tvary
+    (pass-to (tvary-then) /qdo/^/qq/-/tvary-later-done
+      istr.\;qq[
+        The clock struck
+        \;uq;ls[^/uq/-/tvary-cycling (uniq-name) /list
+          (tvary-done str.\;qq[twelve])
+          (tvary-done str.\;qq[three])
+          (tvary-done str.\;qq[six])
+          (tvary-done str.\;qq[nine])
+        ],
+        and the mouse
+        \;uq;ls[^/uq/-/tvary-stopping (uniq-name) /list
+          (tvary-done str.\;qq[ran up the clock])
+          (tvary-done str.\;qq[ran down the clock])
+          (tvary-done str.\;qq[was not impressed])
+        ].])
+  /foldl-later (pair (nil) (table-empty/nil))
+    (list (nil) (nil) (nil) (nil) (nil) (nil))
+    (fn loop-state - then
+      (cast loop-state pair rev-results tvary-state
+        err.\;qq[Internal error]
+      /c tvary tvary-state /fn result
+      /cast result folding tvary-state result
+        err.\;qq[Internal error]
+      /c then /pair (cons result rev-results) tvary-state))
+  /fn loop-state
+  /cast loop-state pair rev-results tvary-state
+    err.\;qq[Internal error]
+  /foldl-later str.\;qq[] rev-results
+    (fn rest entry then
+      (c istr.\;qq[\;uq;ls`entry`\n \;uq;ls`rest`] then))
+  /fn results
+  /c then results))
+
+(def-macro tvary-go home-scope caller-scope my-stx-details args then
+  (basic-nil-macro home-scope caller-scope my-stx-details then
+  /fn unique-ns s mac
+  /tvary-demo-later/fn demo-results
+  /get-mode/fn mode
+  /join-effects
+    (output-path-blob-utf-8
+      (output-path-get cli-output-directory.mode
+        str.\;qq[tvary-demo.txt])
+      demo-results)
+  /no-effects/nil))
+
+(tvary-go)
