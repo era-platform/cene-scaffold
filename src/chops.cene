@@ -1,0 +1,324 @@
+\= chops.cene (part of Cene Scaffold)
+\= Copyright 2016 Ross Angle. Released under the MIT License.
+
+\= TODO: See if we should factor this file out into a separate
+\= codebase.
+
+\= TODO: Test this file. We're not even loading it yet, let alone
+\= using it.
+
+\= TODO: Use the chops parsers to create a convenient syntax for text
+\= variations, perhaps like this:
+\=
+\= tvary.\;qq[
+\=   The clock struck [cycle twelve|three|six|nine]. The mouse
+\=   [proceed ran up the clock|ran down the clock|was not impressed].]
+
+
+(defn regex-or a b
+  (regex-if a (regex-empty/nil) b))
+
+(defn regex-seq a b
+  (regex-if a b /regex-give-up/nil))
+
+(defn regex-not regex
+  (regex-if regex (regex-give-up/nil) (regex-empty/nil)))
+
+(defn regex-lookahead regex
+  (regex-not/regex-not regex))
+
+\= TODO: See if we'll use these.
+(defn unicode-scalar string
+  (string-get-unicode-scalar string /int-zero/nil))
+(defn regex-range a b
+  (regex-one-in-range unicode-scalar.a unicode-scalar.b))
+
+(defn regex-match-later regex string start then
+  (optimize-regex-later regex /fn optimized-regex
+  /optimized-regex-match-later
+    optimized-regex string start length.string then))
+
+
+(defn string-cut-both-later string i then
+  (string-cut-later string (int-zero/nil) i /fn before
+  /string-cut-later string i string-length.string /fn after
+  /c then before after))
+
+
+(defn istring-first-string istring
+  (case istring
+    istring-nil string string
+    istring-cons prefix interpolation rest prefix
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+(defn istring-replace-first-string istring new-string
+  (case istring
+    
+    istring-nil string istring-nil.new-string
+    
+    istring-cons prefix interpolation rest
+    (istring-cons new-string interpolation rest)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+
+(defn int-plus a b
+  (call-fuse (fuse-int-by-plus/nil) a b))
+
+
+(def-struct parse-chops-result closed-stack chops opened-stack)
+
+\= This parses an istring to match its `[` and `]` brackets. It
+\= asynchronously results in a list (from left to right) of nested
+\= interpolated strings that have been closed by unmatched `]`,
+\= another nested interpolated string, and a list (from left to right)
+\= of nested interpolated strings that have been opened by unmatched
+\= `[`. Interpolations in the original string are wrapped in
+\= `(foreign ...)` so that they're distinguishable from bracket
+\= nesting.
+\=
+(defn parse-chops-later istring then
+  (let string istring-first-string.istring
+  /regex-match-later
+    (regex-until (regex-one/nil)
+    /regex-lookahead/regex-one-in-string str.\;qq[\<\>])
+    string
+    (int-zero/nil)
+  /fn regex-result
+  /case regex-result
+    
+    regex-result-passed-end
+    (cast istring istring-cons prefix interpolation rest
+      (parse-chops-result (list) istring (list))
+    /parse-chops-later rest /fn parse-chops-result
+    /c then
+    /cast parse-chops-result
+      parse-chops-result closed-stack chops opened-stack
+      err.\;qq[Internal error]
+    /cast closed-stack cons leftmost-closed rest-closed
+      (parse-chops-result
+        (list)
+        (istring-cons prefix foreign.interpolation chops)
+        opened-stack)
+    /parse-chops-result
+      (cons
+        (istring-cons prefix foreign.interpolation leftmost-closed)
+        rest-closed)
+      chops
+      opened-stack)
+    
+    regex-result-matched stop
+    (string-cut-both-later string stop /fn before after
+    /string-cut-both-later after (int-one/nil) /fn during after
+    /parse-chops-later (istring-replace-first-string istring after)
+    /fn parse-chops-result
+    /c then
+    /cast parse-chops-result
+      parse-chops-result closed-stack chops opened-stack
+      err.\;qq[Internal error]
+    /case (call-dex (dex-string/nil) during str.\;qq[\>]) yep -
+      (parse-chops-result
+        (cons istring-nil.before closed-stack)
+        chops
+        opened-stack)
+    /cast closed-stack cons leftmost-closed rest-closed
+      (parse-chops-result
+        (list)
+        istring-nil.before
+        (cons chops opened-stack))
+    /cast rest-closed cons leftmost-closed-2 rest-closed
+      (parse-chops-result
+        (list)
+        (istring-cons before leftmost-closed chops)
+        opened-stack)
+    /parse-chops-result
+      (cons (istring-cons before leftmost-closed leftmost-closed-2)
+        rest-closed)
+      chops
+      opened-stack)
+    
+    regex-result-failed
+    err.\;qq[Internal error]
+    
+    err.\;qq[Internal error]))
+
+(def-struct chops-macro-call macro-name-string body-istring)
+
+\= This parses an interpolated string to produce a macro call
+\= consisting of a string as the macro name and an interpolated string
+\= as the macro body. The macro name is obtained by finding zero or
+\= more characters at the start of the string other than space, tab,
+\= carriage return, newline, and `:`. The macro body is obtained by
+\= removing the macro name and the `:`, or by removing the macro name
+\= and left-trimming the remainder of one or more space, tab, carriage
+\= return, and newline characters, whichever case applies.
+\=
+(defn parse-chops-macro-call-later istring then
+  (let string istring-first-string.istring
+  /let regex-colon (regex-from-string str.\;qq[:])
+  /let regex-whitespace (regex-one-in-string str.\;qq[\s\t\r\n])
+  /regex-match-later
+    (regex-until (regex-one/nil)
+    /regex-lookahead/regex-or regex-colon regex-whitespace)
+    string
+    (int-zero/nil)
+  /fn regex-result
+  /case regex-result
+    
+    regex-result-passed-end
+    (case istring
+      
+      istring-nil string
+      (c then /chops-macro-call string /istring-nil str.\;qq[])
+      
+      istring-cons prefix interpolation rest
+      (c then /chops-macro-call prefix
+      /istring-cons str.\;qq[] interpolation rest)
+      
+      err.\;qq[Internal error])
+    
+    regex-result-matched stop
+    (string-cut-both-later string stop /fn before after
+    /regex-match-later
+      (regex-or regex-colon
+      /regex-then regex-whitespace
+      /regex-until (regex-one/nil)
+      /regex-not regex-whitespace)
+      after
+      (int-zero/nil)
+    /fn regex-result
+    /cast regex-result regex-result-matched next-stop
+      err.\;qq[Internal error]
+    /string-cut-later after next-stop string-length.after /fn after
+    /c then /chops-macro-call before
+    /istring-replace-first-string istring after)
+    
+    regex-result-failed
+    err.\;qq[Internal error]
+    
+    err.\;qq[Internal error]))
+
+(defn string-ltrim-later string regex then
+  (regex-match-later (regex-while regex /regex-empty/nil) string
+    (int-zero/nil)
+  /fn regex-result
+  /case regex-result
+    
+    regex-result-matched stop
+    (string-cut-later string stop string-length.string then)
+    
+    regex-result-passed-end
+    err.\;qq[Expected a regex that consumed only one character]
+    
+    regex-result-failed
+    err.\;qq[Internal error]
+    
+    err.\;qq[Internal error]))
+
+(defn istring-ltrim-later istring regex then
+  (string-ltrim-later istring-first-string.istring regex /fn string
+  /c then /istring-replace-first-string istring after))
+
+(defn string-rtrim-later string regex then
+  (let get-next-stop-later
+    (fn i regex then
+      (regex-match-later regex string i /fn regex-result
+      /case regex-result
+        
+        regex-result-matched stop
+        (c then stop)
+        
+        regex-result-passed-end
+        err.\;qq[Expected a regex that consumed only one character]
+        
+        regex-result-failed
+        err.\;qq[Internal error]
+        
+        err.\;qq[Internal error]))
+  /let loop
+    (fix/fn loop i
+      (c get-next-stop-later i
+        (regex-until (regex-one/nil) /regex-lookahead regex)
+      /fn i2
+      /c get-next-stop-later i2 (regex-while regex /regex-empty/nil)
+      /fn i3
+      /case (int-compare i3 /string-length string) nil
+        (string-cut-later string (int-zero/nil) i2 then)
+      /c loop i3))
+  /c loop /int-zero/nil))
+
+(defn istring-rtrim-later istring regex then
+  (case istring
+    
+    istring-nil string
+    (string-rtrim-later string regex /fn string
+    /c then /istring-nil string)
+    
+    istring-cons prefix interpolation rest
+    (istring-rtrim-later rest regex /fn rest
+    /c then /istring-cons prefix interpolation rest)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+(defn istring-trim-later istring regex then
+  (istring-ltrim-later istring regex /fn istring
+  /istring-ltrim-last-later istring regex then))
+
+(defn string-split-later string regex then
+  (let loop
+    (fix/fn loop rev-results i
+      (regex-match-later
+        (regex-until (regex-one/nil) /regex-lookahead regex)
+        string
+        i
+      /fn regex-result
+      /case regex-result
+        
+        regex-result-matched stop
+        (string-cut-later string i stop /fn result
+        /regex-match-later regex string stop /fn regex-result
+        /cast regex-result regex-result-matched stop
+          err.\;qq[Internal error]
+        /c loop (cons result rev-results) stop)
+        
+        regex-result-passed-end
+        (string-cut-later string i string-length.string /fn result
+        /c then /rev/cons result rev-results)
+        
+        regex-result-failed
+        err.\;qq[Internal error]
+        
+        err.\;qq[Internal error]))
+  /c loop (list) /int-zero/nil))
+
+(defn istring-split-later istring regex then
+  (case istring
+    
+    istring-nil string
+    (string-split-later string regex /fn strings
+    /c then /map strings /fn string istring-nil.string)
+    
+    istring-cons prefix interpolation rest
+    (string-split-later prefix regex /fn prefix-strings
+    /istring-split-later rest regex /fn rest-istrings
+    /cast rev.prefix-strings
+      cons last-prefix-string rev-prefix-strings
+      err.\;qq[Internal error]
+    /cast rest-istrings cons first-rest-istring rest-istrings
+      err.\;qq[Internal error]
+    /c then /rev-append
+      (map rev-prefix-strings /fn string istring-nil.string)
+    /cons
+      (istring-cons
+        last-prefix-string interpolation first-rest-istring)
+      rest-istrings)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
