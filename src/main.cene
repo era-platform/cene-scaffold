@@ -106,14 +106,7 @@
 \= Cene:
 \=
 \= tvary.\;qq[
-\=   The clock struck
-\=   \;uq;ls[tvary-cycling (uniq-name) /list
-\=     tvary.\;qq[twelve]
-\=     tvary.\;qq[three]
-\=     tvary.\;qq[six]
-\=     tvary.\;qq[nine]
-\=   ],
-\=   and the mouse
+\=   The clock struck [cycle twelve|three|six|nine], and the mouse
 \=   \;uq;ls[tvary-stopping (uniq-name) /list
 \=     tvary.\;qq[ran up the clock]
 \=     tvary.\;qq[ran down the clock]
@@ -236,6 +229,17 @@
     \= TODO: Organize this codebase in a more dependencies-first
     \= order.
     tvary.\;qq[
+      The clock struck [cycle twelve|three|six|nine], and the mouse
+      \;uq;ls[tvary-stopping (uniq-name) /list
+        tvary.\;qq[ran up the clock]
+        tvary.\;qq[ran down the clock]
+        tvary.\;qq[was not impressed]
+      ].]
+    
+    \= These are some alternate, more verbose versions.
+    
+    \;rm[
+    tvary.\;qq[
       The clock struck
       \;uq;ls[tvary-cycling (uniq-name) /list
         tvary.\;qq[twelve]
@@ -249,8 +253,8 @@
         tvary.\;qq[ran down the clock]
         tvary.\;qq[was not impressed]
       ].]
+    ]
     
-    \= This is an alternate, more verbose version.
     \;rm
     (pass-to (tvary-then) /qdo/^/qq/-/tvary-later-done
       istr.\;qq[
@@ -268,7 +272,6 @@
           (tvary-done str.\;qq[was not impressed])
         ].])
     
-    \= This is another alternate, even more verbose version.
     \;rm
     (tvary-then
       (tvary-cycling (uniq-name) /list
