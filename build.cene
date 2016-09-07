@@ -36,4 +36,5 @@
     launch-rest))
 
 (import \;qq[util.cene])
+(import \;qq[chops.cene])
 (import \;qq[main.cene])

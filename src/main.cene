@@ -105,21 +105,20 @@
 \=
 \= Cene:
 \=
-\= (pass-to (tvary-then) /qdo/^/qq/-/tvary-later-done
-\=   istr.\;qq[
-\=     The clock struck
-\=     \;uq;ls[^/uq/-/tvary-cycling (uniq-name) /list
-\=       (tvary-done str.\;qq[twelve])
-\=       (tvary-done str.\;qq[three])
-\=       (tvary-done str.\;qq[six])
-\=       (tvary-done str.\;qq[nine])
-\=     ],
-\=     and the mouse
-\=     \;uq;ls[^/uq/-/tvary-stopping (uniq-name) /list
-\=       (tvary-done str.\;qq[ran up the clock])
-\=       (tvary-done str.\;qq[ran down the clock])
-\=       (tvary-done str.\;qq[was not impressed])
-\=     ].])
+\= tvary.\;qq[
+\=   The clock struck
+\=   \;uq;ls[tvary-cycling (uniq-name) /list
+\=     tvary.\;qq[twelve]
+\=     tvary.\;qq[three]
+\=     tvary.\;qq[six]
+\=     tvary.\;qq[nine]
+\=   ],
+\=   and the mouse
+\=   \;uq;ls[tvary-stopping (uniq-name) /list
+\=     tvary.\;qq[ran up the clock]
+\=     tvary.\;qq[ran down the clock]
+\=     tvary.\;qq[was not impressed]
+\=   ].]
 \=
 \=
 \= First six consecutive outputs:
@@ -233,6 +232,26 @@
 
 (defn tvary-demo-later then
   (let tvary
+    \= NOTE: The `tvary` macro is defined in chops.cene.
+    \= TODO: Organize this codebase in a more dependencies-first
+    \= order.
+    tvary.\;qq[
+      The clock struck
+      \;uq;ls[tvary-cycling (uniq-name) /list
+        tvary.\;qq[twelve]
+        tvary.\;qq[three]
+        tvary.\;qq[six]
+        tvary.\;qq[nine]
+      ],
+      and the mouse
+      \;uq;ls[tvary-stopping (uniq-name) /list
+        tvary.\;qq[ran up the clock]
+        tvary.\;qq[ran down the clock]
+        tvary.\;qq[was not impressed]
+      ].]
+    
+    \= This is an alternate, more verbose version.
+    \;rm
     (pass-to (tvary-then) /qdo/^/qq/-/tvary-later-done
       istr.\;qq[
         The clock struck
@@ -248,6 +267,27 @@
           (tvary-done str.\;qq[ran down the clock])
           (tvary-done str.\;qq[was not impressed])
         ].])
+    
+    \= This is another alternate, even more verbose version.
+    \;rm
+    (tvary-then
+      (tvary-cycling (uniq-name) /list
+        (tvary-done str.\;qq[twelve])
+        (tvary-done str.\;qq[three])
+        (tvary-done str.\;qq[six])
+        (tvary-done str.\;qq[nine]))
+    /fn hour
+    /tvary-then
+      (tvary-stopping (uniq-name) /list
+        (tvary-done str.\;qq[ran up the clock])
+        (tvary-done str.\;qq[ran down the clock])
+        (tvary-done str.\;qq[was not impressed]))
+    /fn action
+    /tvary-later-done
+      istr.\;qq[
+        The clock struck \;uq;ls`hour`, and the mouse
+        \;uq;ls`action`.])
+  
   /foldl-later (pair (nil) (table-empty/nil))
     (list (nil) (nil) (nil) (nil) (nil) (nil))
     (fn loop-state - then

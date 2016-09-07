@@ -36,7 +36,7 @@
 (defn regex-match-later regex string start then
   (optimize-regex-later regex /fn optimized-regex
   /optimized-regex-match-later
-    optimized-regex string start length.string then))
+    optimized-regex string start string-length.string then))
 
 
 (defn string-cut-both-later string i then
@@ -85,7 +85,7 @@
   (let string istring-first-string.istring
   /regex-match-later
     (regex-until (regex-one/nil)
-    /regex-lookahead/regex-one-in-string str.\;qq[\<\>])
+    /regex-lookahead/regex-one-in-string str.\;qq[\<`\>])
     string
     (int-zero/nil)
   /fn regex-result
@@ -93,7 +93,7 @@
     
     regex-result-passed-end
     (cast istring istring-cons prefix interpolation rest
-      (parse-chops-result (list) istring (list))
+      (c then /parse-chops-result (list) istring (list))
     /parse-chops-later rest /fn parse-chops-result
     /c then
     /cast parse-chops-result
@@ -160,7 +160,7 @@
 (defn parse-chops-macro-call-later istring then
   (let string istring-first-string.istring
   /let regex-colon (regex-from-string str.\;qq[:])
-  /let regex-whitespace (regex-one-in-string str.\;qq[\s\t\r\n])
+  /let regex-whitespace (regex-one-in-string str.\;qq[\s`\t`\r`\n])
   /regex-match-later
     (regex-until (regex-one/nil)
     /regex-lookahead/regex-or regex-colon regex-whitespace)
@@ -185,7 +185,7 @@
     (string-cut-both-later string stop /fn before after
     /regex-match-later
       (regex-or regex-colon
-      /regex-then regex-whitespace
+      /regex-seq regex-whitespace
       /regex-until (regex-one/nil)
       /regex-not regex-whitespace)
       after
@@ -221,7 +221,7 @@
 
 (defn istring-ltrim-later istring regex then
   (string-ltrim-later istring-first-string.istring regex /fn string
-  /c then /istring-replace-first-string istring after))
+  /c then /istring-replace-first-string istring string))
 
 (defn string-rtrim-later string regex then
   (let get-next-stop-later
@@ -268,7 +268,7 @@
 
 (defn istring-trim-later istring regex then
   (istring-ltrim-later istring regex /fn istring
-  /istring-ltrim-last-later istring regex then))
+  /istring-rtrim-later istring regex then))
 
 (defn string-split-later string regex then
   (let loop
@@ -322,3 +322,162 @@
     err.\;qq[
       Expected an istring that was an istring-nil or an
       istring-cons]))
+
+(defn chops-split-and-trim-later istring then
+  (istring-split-later istring (regex-from-string str.\;qq[|])
+  /fn istrings
+  /map-later istrings
+    (fn istring then
+      (istring-trim-later (regex-one-in-string str.\;qq[\s`\t`\r`\n])
+        then))
+    then))
+
+(def-struct chops-macro-occurrence name)
+
+(def-struct chops-macro-ns)
+
+(defn procure-sub-ns name ns
+  (proj1 yep /table-get name
+  /procure-sub-ns-table (table-shadow name (yep/nil) /table-empty/nil)
+    ns))
+
+(defn getdef-get mode getdef
+  (cast getdef getdef get def
+    err.\;qq[Expected a getdef that was a getdef]
+  /c get mode))
+
+(defn getdef-def-val getdef val
+  (cast getdef getdef get def
+    err.\;qq[Expected a getdef that was a getdef]
+  /c def (dex-give-up/nil) val))
+
+(defn chops-macro-getdef macro-name-string scope
+  (cast scope scope unique-ns def-ns qualify
+    err.\;qq[Expected a scope that was a scope]
+  /procure-contributed-element-getdef
+    (name-of/dexable (dex-string/nil) str.\;qq[yep])
+  /procure-sub-ns
+    (c qualify
+    /name-of/dexable (dex-struct chops-macro-occurrence /dex-name/nil)
+    /chops-macro-occurrence
+    /name-of/dexable (dex-string/nil) macro-name-string)
+  /procure-sub-ns
+    (name-of/dexable dex-struct.chops-macro-ns /chops-macro-ns)
+    def-ns))
+
+(defn chops-macroexpand-later scope istring then
+  (parse-chops-macro-call-later istring /fn call
+  /cast call chops-macro-call macro body
+    err.\;qq[Internal error]
+  /get-mode/fn mode
+  /c (getdef-get mode /chops-macro-getdef macro scope)
+    scope body then))
+
+(def-macro def-chops-macro
+  home-scope caller-scope my-stx-details args then
+  
+  (cast caller-scope
+    scope caller-unique-ns caller-def-ns caller-qualify
+    err.\;qq[Internal error]
+  /join-effects procure-claim.caller-unique-ns
+  /let subscope
+    (fn string
+      (scope (ns-get string caller-unique-ns) caller-def-ns
+        caller-qualify))
+  /cast args cons macro-name fn-body
+    err.\;qq[Called def-chops-macro with fewer than one argument]
+  \= TODO: Support more than just string names here.
+  /cast macro-name istring-nil macro-name-string
+    err.\;qq[Called def-chops-macro with a non-string macro name]
+  /basic-nil-macro
+    home-scope (c subscope str.body) my-stx-details then
+  /fn unique-ns s mac
+  /compile-expression-later (c subscope str.compile-fn)
+    (c s /c mac str.fn fn-body)
+  /fn func
+  /getdef-def-val (chops-macro-getdef macro-name-string caller-scope)
+  /c eval-cexpr.func /c subscope str.home))
+
+
+(defn str-^-qq-- s contents
+  (c s /list (c s /istring-nil str.^)
+  /c s /list (c s /istring-nil str.qq)
+  /c s /list (c s /istring-nil str.-) contents))
+
+(defn str-^-uq-- s contents
+  (c s /list (c s /istring-nil str.^)
+  /c s /list (c s /istring-nil str.uq)
+  /c s /list (c s /istring-nil str.-) contents))
+
+(defn istring-unique-ns-spread-later
+  unique-ns istring combine-later then
+  
+  (case istring
+    
+    istring-nil - (c-later then istring)
+    
+    istring-cons prefix interpolation rest
+    (c combine-later (ns-get str.first unique-ns) interpolation
+    /fn interpolation
+    /istring-unique-ns-spread-later (ns-get str.rest unique-ns) rest
+      combine-later
+    /fn rest
+    /c then /istring-cons prefix interpolation rest)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+(defn istring-map istring func
+  (case istring
+    
+    istring-nil - istring
+    
+    istring-cons prefix interpolation rest
+    (istring-cons prefix (c func interpolation)
+    /istring-map rest func)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+(def-macro tvary home-scope caller-scope my-stx-details args then
+  (cast caller-scope
+    scope caller-unique-ns caller-def-ns caller-qualify
+    err.\;qq[Internal error]
+  /join-effects procure-claim.caller-unique-ns
+  /cast args cons istring args
+    err.\;qq[Called tvary with fewer than one argument]
+  /cast args nil
+    err.\;qq[Called tvary with more than one argument]
+  /cast istring stx - istring
+    err.\;qq[Expected an istring that was a stx]
+  /parse-chops-later istring /fn parse-chops-result
+  /cast parse-chops-result
+    parse-chops-result closed-stack chops opened-stack
+    err.\;qq[Internal error]
+  /cast closed-stack nil
+    err.\;qq[Unmatched \>]
+  /cast opened-stack nil
+    err.\;qq[Unmatched \<]
+  /istring-unique-ns-spread-later
+    (ns-get str.subexprs caller-unique-ns)
+    chops
+    (fn unique-ns interpolation then
+      (let scope (scope unique-ns caller-def-ns caller-qualify)
+      /case interpolation foreign expr
+        (compile-expression-later scope expr then)
+        (chops-macroexpand-later scope interpolation then)))
+  /fn chops
+  /basic-pure-macro home-scope
+    (scope (ns-get str.body caller-unique-ns) caller-def-ns
+      caller-qualify)
+    my-stx-details
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.pass-to /list (c s /c mac str.tvary-then /list)
+  /c s /c mac str.qdo /list/str-^-qq-- s
+  /c s /c mac str.tvary-later-done /list
+  /c s /c mac str.istr /list
+  /c s /istring-map chops /fn cexpr
+    (str-^-uq-- s /c s /foreign/obtain-directly cexpr)))
