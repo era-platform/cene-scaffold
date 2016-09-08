@@ -152,18 +152,15 @@
 \= consisting of a string as the macro name and an interpolated string
 \= as the macro body. The macro name is obtained by finding zero or
 \= more characters at the start of the string other than space, tab,
-\= carriage return, newline, and `:`. The macro body is obtained by
-\= removing the macro name and the `:`, or by removing the macro name
-\= and left-trimming the remainder of one or more space, tab, carriage
-\= return, and newline characters, whichever case applies.
+\= carriage return, and newline. The macro body is obtained by
+\= removing the macro name and left-trimming the remainder of its
+\= space, tab, carriage return, and newline characters.
 \=
 (defn parse-chops-macro-call-later istring then
   (let string istring-first-string.istring
-  /let regex-colon (regex-from-string str.\;qq[:])
   /let regex-whitespace (regex-one-in-string str.\;qq[\s`\t`\r`\n])
   /regex-match-later
-    (regex-until (regex-one/nil)
-    /regex-lookahead/regex-or regex-colon regex-whitespace)
+    (regex-until (regex-one/nil) /regex-lookahead regex-whitespace)
     string
     (int-zero/nil)
   /fn regex-result
@@ -184,10 +181,7 @@
     regex-result-matched stop
     (string-cut-both-later string stop /fn before after
     /regex-match-later
-      (regex-or regex-colon
-      /regex-seq regex-whitespace
-      /regex-until (regex-one/nil)
-      /regex-not regex-whitespace)
+      (regex-until (regex-one/nil) /regex-not regex-whitespace)
       after
       (int-zero/nil)
     /fn regex-result
@@ -323,15 +317,15 @@
       Expected an istring that was an istring-nil or an
       istring-cons]))
 
+(defn chops-trim-later istring then
+  (istring-trim-later istring
+    (regex-one-in-string str.\;qq[\s`\t`\r`\n])
+    then))
+
 (defn chops-split-and-trim-later istring then
   (istring-split-later istring (regex-from-string str.\;qq[|])
   /fn istrings
-  /map-later istrings
-    (fn istring then
-      (istring-trim-later istring
-        (regex-one-in-string str.\;qq[\s`\t`\r`\n])
-        then))
-    then))
+  /map-later istrings (chops-trim-later) then))
 
 (def-struct chops-macro-occurrence name)
 
@@ -502,12 +496,14 @@
     (str-^-uq-- s /c s /foreign/obtain-directly cexpr)))
 
 \= TODO: Implement a similar `(def-chops-macro proceed ...)`.
-(def-chops-macro cycle home-scope caller-scope chops then
+(defn compile-tvary-cycler-later
+  home-scope caller-scope chops cycler-name then
+  
   (cast home-scope scope home-unique-ns home-def-ns home-qualify
-    err.\;qq[Internal error]
+    err.\;qq[Expected a home-scope that was a scope]
   /cast caller-scope
     scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Internal error]
+    err.\;qq[Expected a caller-scope that was a scope]
   /join-effects procure-claim.caller-unique-ns
   /let s (fn s-expr /stx (trivial-stx-details/nil) s-expr)
   /let mac
@@ -540,7 +536,93 @@
   /fn elems
   /get-mode/fn mode
   /compile-expression-later (scope-get str.body caller-scope)
-    (c s /c mac mode str.tvary-cycling /list
+    (c s /c mac mode cycler-name /list
       (c s /c mac mode str.uniq-name /list)
     /c s /c mac mode str.list elems)
     then))
+
+(def-chops-macro cycle home-scope caller-scope chops then
+  (compile-tvary-cycler-later home-scope caller-scope chops
+    str.tvary-cycling then))
+
+(def-chops-macro proceed home-scope caller-scope chops then
+  (compile-tvary-cycler-later home-scope caller-scope chops
+    str.tvary-proceeding then))
+
+(defn compile-tvary-constant-later
+  home-scope caller-scope chops err-fn constant then
+  
+  (chops-trim-later chops /fn trimmed
+  /cast trimmed istring-nil trimmed (c err-fn /nil)
+  /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
+  /cast home-scope scope home-unique-ns home-def-ns home-qualify
+    err.\;qq[Expected a home-scope that was a scope]
+  /cast caller-scope
+    scope caller-unique-ns caller-def-ns caller-qualify
+    err.\;qq[Expected a caller-scope that was a scope]
+  /join-effects procure-claim.caller-unique-ns
+  /let s (fn s-expr /stx (trivial-stx-details/nil) s-expr)
+  /let mac
+    (fn mode str rest
+      (cons
+        (c s /foreign/obtain-directly/getdef-get mode
+        /procure-macro-implementation-getdef home-def-ns
+        /c home-qualify /name-of/dexable (dex-string/nil) str)
+        rest))
+  /get-mode/fn mode
+  /compile-expression-later (scope-get str.body caller-scope)
+    (c s /c mac mode str.tvary-done /list
+    /c s /c mac mode str.str /list
+    /c s /istring-nil constant)
+    then))
+
+\= The Chops macro call `[']` becomes a `tvary` of the
+\= single-character string "|". The point is to allow "|" to be part
+\= of the text instead of being treated as a divider.
+(def-chops-macro \;qq['] home-scope caller-scope chops then
+  (compile-tvary-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the | Chops macro without an empty body])
+    str.\;qq[|]
+    then))
+
+\= The Chops macro call `[:]` becomes a `tvary` of the empty string.
+\= The point is to act as a buffer so that the nearby whitespace on
+\= one side doesn't get trimmed.
+(def-chops-macro \;qq[:] home-scope caller-scope chops then
+  (compile-tvary-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the : Chops macro without an empty body])
+    str.\;qq[]
+    then))
+
+\= The Chops macro calls `[<]` becomes a `tvary` of the
+\= single-character string "[", and likewise, `[>]` corresponds to
+\= "]".
+(def-chops-macro \;qq[<] home-scope caller-scope chops then
+  (compile-tvary-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the < Chops macro without an empty body])
+    str.\;qq[\<]
+    then))
+(def-chops-macro \;qq[>] home-scope caller-scope chops then
+  (compile-tvary-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the < Chops macro without an empty body])
+    str.\;qq[\>]
+    then))
+
+(def-chops-macro \;qq[] home-scope caller-scope chops then
+  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.tvary /list
+  /c s /istring-cons str.\;qq[]
+    (c s /c mac str.tvary-done /list
+    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\<])
+  /istring-cons str.\;qq[]
+    (c s /c mac str.tvary /list /c s chops)
+  /istring-cons str.\;qq[]
+    (c s /c mac str.tvary-done /list
+    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])
+  /istring-nil str.\;qq[]))

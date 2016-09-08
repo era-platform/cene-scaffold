@@ -85,9 +85,11 @@
 \= appears in.
 \=
 \= Then we use this name as the key in a table, and we use `qdo` as
-\= sugar for a state monad where that table is the state. With this
-\= technique, we achieve a verbose but macro-expressibly equivalent
-\= syntax for using "cycling" and "stopping" text variations in Cene.
+\= sugar for a state monad where that table is the state. Then over
+\= the top of that, we build a `tvary` sugar using a simple markup
+\= language defined in chops.cene. With this technique, we start off
+\= expressing it in a rather verbose way, but soon we get to a concise
+\= syntax like those of Inform 7 and Ink.
 \=
 \=
 \= Inform 7:
@@ -107,11 +109,7 @@
 \=
 \= tvary.\;qq[
 \=   The clock struck [cycle twelve|three|six|nine], and the mouse
-\=   \;uq;ls[tvary-stopping (uniq-name) /list
-\=     tvary.\;qq[ran up the clock]
-\=     tvary.\;qq[ran down the clock]
-\=     tvary.\;qq[was not impressed]
-\=   ].]
+\=   [proceed ran up the clock|ran down the clock|was not impressed].]
 \=
 \=
 \= First six consecutive outputs:
@@ -169,7 +167,7 @@
     cons - rest is-proper-list.rest
   /nope/nil))
 
-(defn tvary-stopping name list
+(defn tvary-proceeding name list
   (cast is-proper-list.list yep -
     err.\;qq[Expected a list that was a proper list]
   /case list nil
@@ -179,14 +177,14 @@
     /let old-list (case (table-get name state) yep list list list)
     /cast old-list cons chosen-tvary rest
       err.\;qq[
-        In the state of tvary-stopping, expected a list that was a
+        In the state of tvary-proceeding, expected a list that was a
         nonempty proper list]
     /let new-list
       (case rest
         nil old-list
         cons - -b rest
         err.\;qq[
-          In the state of tvary-stopping, expected a list that was a
+          In the state of tvary-proceeding, expected a list that was a
           proper list])
     /c chosen-tvary (table-shadow name yep.new-list state) then)))
 
@@ -225,16 +223,14 @@
 
 (defn tvary-demo-later then
   (let tvary
-    \= NOTE: The `tvary` macro is defined in chops.cene.
+    \= NOTE: The `tvary` macro and the `cycle` and `proceed` Chops
+    \= macros are defined in chops.cene.
     \= TODO: Organize this codebase in a more dependencies-first
     \= order.
     tvary.\;qq[
       The clock struck [cycle twelve|three|six|nine], and the mouse
-      \;uq;ls[tvary-stopping (uniq-name) /list
-        tvary.\;qq[ran up the clock]
-        tvary.\;qq[ran down the clock]
-        tvary.\;qq[was not impressed]
-      ].]
+      [proceed ran up the clock|ran down the clock|was not impressed].
+    ]
     
     \= These are some alternate, more verbose versions.
     
@@ -248,7 +244,7 @@
         tvary.\;qq[nine]
       ],
       and the mouse
-      \;uq;ls[tvary-stopping (uniq-name) /list
+      \;uq;ls[tvary-proceeding (uniq-name) /list
         tvary.\;qq[ran up the clock]
         tvary.\;qq[ran down the clock]
         tvary.\;qq[was not impressed]
@@ -266,7 +262,7 @@
           (tvary-done str.\;qq[nine])
         ],
         and the mouse
-        \;uq;ls[^/uq/-/tvary-stopping (uniq-name) /list
+        \;uq;ls[^/uq/-/tvary-proceeding (uniq-name) /list
           (tvary-done str.\;qq[ran up the clock])
           (tvary-done str.\;qq[ran down the clock])
           (tvary-done str.\;qq[was not impressed])
@@ -281,7 +277,7 @@
         (tvary-done str.\;qq[nine]))
     /fn hour
     /tvary-then
-      (tvary-stopping (uniq-name) /list
+      (tvary-proceeding (uniq-name) /list
         (tvary-done str.\;qq[ran up the clock])
         (tvary-done str.\;qq[ran down the clock])
         (tvary-done str.\;qq[was not impressed]))
