@@ -448,25 +448,57 @@
       Expected an istring that was an istring-nil or an
       istring-cons]))
 
-(def-macro tvary home-scope caller-scope my-stx-details args then
+\= TODO NOW: See if we actually need the free monad operations.
+(def-struct free-monad-computation func)
+(def-struct monad-ops done seq)
+
+(defn free-monad-done result
+  (free-monad-computation/fn monad-ops
+  /cast monad-ops monad-ops done seq
+    err.\;qq[Expected a monad-ops that was a monad-ops]
+  /c done result))
+
+(defn free-monad-seq first second
+  (cast first free-monad-computation first
+    err.\;qq[Expected a first that was a free-monad-computation]
+  /free-monad-computation/fn monad-ops
+  /cast monad-ops monad-ops done seq
+    err.\;qq[Expected a monad-ops that was a monad-ops]
+  /c seq (c first monad-ops) /fn first-result
+  /cast first-result free-monad-computation first-result
+    err.\;qq[
+      Expected a first-result that was a free-monad-computation]
+  /c first-result monad-ops))
+
+(def-struct free-chopsrun func)
+(def-struct chopsrun-ops from-string join)
+
+(defn chopsrun-from-string string
+  (free-chopsrun/fn chopsrun-ops
+  /cast chopsrun-ops chopsrun-ops from-string join
+    err.\;qq[Expected a chopsrun-ops that was a chopsrun-ops]
+  /c from-string string))
+
+(defn chopsrun-join a b
+  (cast a free-chopsrun a
+    err.\;qq[Expected an a that was a free-chopsrun]
+  /cast b free-chopsrun b
+    err.\;qq[Expected a b that was a free-chopsrun]
+  /free-chopsrun/fn chopsrun-ops
+  /cast chopsrun-ops chopsrun-ops from-string join
+    err.\;qq[Expected a chopsrun-ops that was a chopsrun-ops]
+  /c join (c a chopsrun-ops) (c b chopsrun-ops)))
+
+(defn chopsrun-from-nonfree nonfree
+  (free-chopsrun/fn - nonfree))
+
+(defn compile-chops-later
+  home-scope caller-scope my-stx-details chops then
+  
   (cast caller-scope
     scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Internal error]
+    err.\;qq[Expected a caller-scope that was a scope]
   /join-effects procure-claim.caller-unique-ns
-  /cast args cons istring args
-    err.\;qq[Called tvary with fewer than one argument]
-  /cast args nil
-    err.\;qq[Called tvary with more than one argument]
-  /cast istring stx - istring
-    err.\;qq[Expected an istring that was a stx]
-  /parse-chops-later istring /fn parse-chops-result
-  /cast parse-chops-result
-    parse-chops-result closed-stack chops opened-stack
-    err.\;qq[Internal error]
-  /cast closed-stack nil
-    err.\;qq[Unmatched \>]
-  /cast opened-stack nil
-    err.\;qq[Unmatched \<]
   /istring-scope-spread-later (scope-get str.subexprs caller-scope)
     chops
     (fn scope interpolation then
@@ -478,98 +510,135 @@
     my-stx-details
     then
   /fn unique-ns s mac
-  /c s /c mac str.pass-to /list (c s /c mac str.tvary-then /list)
-  /c s /c mac str.qdo /list/str-^-qq-- s
-  /c s /c mac str.tvary-later-done /list
-  /c s /c mac str.istr /list
-  /c s /istring-map chops /fn cexpr
-    (str-^-uq-- s /c s /foreign/obtain-directly cexpr)))
+  /pass-to chops /fix/fn loop chops
+    (case chops
+      
+      istring-nil string
+      (c s /c mac str.chopsrun-from-string /list
+      /c s /c mac str.str /list/c s /istring-nil string)
+      
+      istring-cons prefix interpolation rest
+      (c s /c mac str.chopsrun-join /list
+        (c s /c mac str.chopsrun-from-string /list
+        /c s /c mac str.str /list/c s /istring-nil prefix)
+      /c s /c mac str.chopsrun-join /list
+        (c s /foreign/obtain-directly interpolation)
+      /c loop rest)
+      
+      err.\;qq[
+        Expected an istring that was an istring-nil or an
+        istring-cons])))
+
+(def-macro chops home-scope caller-scope my-stx-details args then
+  (cast args cons istring args
+    err.\;qq[Called chops with fewer than one argument]
+  /cast args nil
+    err.\;qq[Called chops with more than one argument]
+  /cast istring stx - istring
+    err.\;qq[Expected an istring that was a stx]
+  /parse-chops-later istring /fn parse-chops-result
+  /cast parse-chops-result
+    parse-chops-result closed-stack chops opened-stack
+    err.\;qq[Internal error]
+  /cast closed-stack nil
+    err.\;qq[Unmatched \>]
+  /cast opened-stack nil
+    err.\;qq[Unmatched \<]
+  /compile-chops-later
+    home-scope caller-scope my-stx-details chops then))
+
+(defn run-chopsrun-tvary chopsrun
+  (cast chopsrun free-chopsrun chopsrun
+    err.\;qq[Expected a chopsrun that was a free-chopsrun]
+  /c chopsrun /chopsrun-ops
+    
+    \= from-string
+    (tvary-done)
+    
+    \= join
+    (fn a b state then
+      (c a state /fn a-result
+      /cast a-result folding state a-result
+        err.\;qq[Expected an a-result that was a folding]
+      /c b state /fn b-result
+      /cast b-result folding state b-result
+        err.\;qq[Expected a b-result that was a folding]
+      /string-append-later a-result b-result /fn result
+      /c then /folding state result))))
+
+(def-macro tvary home-scope caller-scope my-stx-details args then
+  (cast args cons istring args
+    err.\;qq[Called tvary with fewer than one argument]
+  /cast args nil
+    err.\;qq[Called tvary with more than one argument]
+  /cast istring stx - istring
+    err.\;qq[Expected an istring that was a stx]
+  /basic-pure-macro home-scope caller-scope my-stx-details then
+  /fn unique-ns s mac
+  /c s /c mac str.run-chopsrun-tvary /list
+  \= TODO NOW: Decide whether to keep the current behavior or the
+  \= commented-out behavior.
+\=  /c s /c mac str.chops /list/c s /istring-map istring /fn elem
+\=    (c s /c mac str.chopsrun-from-nonfree /list elem)))
+  /c s /c mac str.chops /list/c s istring))
 
 (defn compile-tvary-cycler-later
   home-scope caller-scope chops cycler-name then
   
-  (cast home-scope scope home-unique-ns home-def-ns home-qualify
-    err.\;qq[Expected a home-scope that was a scope]
-  /cast caller-scope
+  (cast caller-scope
     scope caller-unique-ns caller-def-ns caller-qualify
     err.\;qq[Expected a caller-scope that was a scope]
   /join-effects procure-claim.caller-unique-ns
-  /let s (fn s-expr /stx (trivial-stx-details/nil) s-expr)
-  /let mac
-    (fn mode str rest
-      (cons
-        (c s /foreign/obtain-directly/getdef-get mode
-        /procure-macro-implementation-getdef home-def-ns
-        /c home-qualify /name-of/dexable (dex-string/nil) str)
-        rest))
   /chops-split-and-trim-later chops /fn chops-list
-  /scope-spread-later (scope-get str.list caller-scope) chops-list
+  /scope-spread-later (scope-get str.subexprs caller-scope)
+    chops-list
     (fn scope chops then
-      (istring-scope-spread-later (scope-get str.subexprs scope) chops
-        (fn scope interpolation then
-          (case interpolation foreign expr
-            (compile-expression-later scope expr then)
-            (chops-macroexpand-later scope interpolation then)))
-      /fn chops
-      /get-mode/fn mode
-      /compile-expression-later (scope-get str.body scope)
-        (c s /c mac mode str.pass-to /list
-          (c s /c mac mode str.tvary-then /list)
-        /c s /c mac mode str.qdo /list/str-^-qq-- s
-        /c s /c mac mode str.tvary-later-done /list
-        /c s /c mac mode str.istr /list
-        /c s /istring-map chops /fn cexpr
-          (str-^-uq-- s /c s /foreign/obtain-directly cexpr))
-      /fn cexpr
-      /c then /c s /foreign/obtain-directly cexpr))
-  /fn elems
-  /get-mode/fn mode
-  /compile-expression-later (scope-get str.body caller-scope)
-    (c s /c mac mode cycler-name /list
-      (c s /c mac mode str.uniq-name /list)
-    /c s /c mac mode str.list elems)
-    then))
+      \= TODO NOW: We probably need to run this through `tvary`
+      \= somehow.
+      (compile-chops-later
+        home-scope scope (trivial-stx-details/nil) chops then))
+  /fn chops-list
+  /basic-pure-macro home-scope (scope-get str.body caller-scope)
+    (trivial-stx-details/nil)
+    then
+  /fn unique-ns s mac
+  /c s /c mac cycler-name /list (c s /c mac str.uniq-name /list)
+  /c s /c mac str.list /map chops-list /fn cexpr
+    (c s /foreign/obtain-directly cexpr)))
+
+(defn tvary-cycling-free-chopsrun name elems
+  (chopsrun-from-nonfree/tvary-cycling name
+  /map elems /run-chopsrun-tvary))
+
+(defn tvary-proceeding-free-chopsrun name elems
+  (chopsrun-from-nonfree/tvary-proceeding name
+  /map elems /run-chopsrun-tvary))
 
 (def-chops-macro cycle home-scope caller-scope chops then
   (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-cycling then))
+    str.tvary-cycling-free-chopsrun then))
 
 (def-chops-macro proceed home-scope caller-scope chops then
   (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-proceeding then))
+    str.tvary-proceeding-free-chopsrun then))
 
-(defn compile-tvary-constant-later
+(defn compile-chops-constant-later
   home-scope caller-scope chops err-fn constant then
   
   (chops-trim-later chops /fn trimmed
   /cast trimmed istring-nil trimmed (c err-fn /nil)
   /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
-  /cast home-scope scope home-unique-ns home-def-ns home-qualify
-    err.\;qq[Expected a home-scope that was a scope]
-  /cast caller-scope
-    scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Expected a caller-scope that was a scope]
-  /join-effects procure-claim.caller-unique-ns
-  /let s (fn s-expr /stx (trivial-stx-details/nil) s-expr)
-  /let mac
-    (fn mode str rest
-      (cons
-        (c s /foreign/obtain-directly/getdef-get mode
-        /procure-macro-implementation-getdef home-def-ns
-        /c home-qualify /name-of/dexable (dex-string/nil) str)
-        rest))
-  /get-mode/fn mode
-  /compile-expression-later (scope-get str.body caller-scope)
-    (c s /c mac mode str.tvary-done /list
-    /c s /c mac mode str.str /list
-    /c s /istring-nil constant)
-    then))
+  /basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.chopsrun-from-string /list
+  /c s /c mac str.str /list/c s /istring-nil constant))
 
 \= The Chops macro call `[']` becomes a `tvary` of the
 \= single-character string "|". The point is to allow "|" to be part
 \= of the text instead of being treated as a divider.
 (def-chops-macro \;qq['] home-scope caller-scope chops then
-  (compile-tvary-constant-later home-scope caller-scope chops
+  (compile-chops-constant-later home-scope caller-scope chops
     (fn -
       err.\;qq[Called the | Chops macro without an empty body])
     str.\;qq[|]
@@ -579,7 +648,7 @@
 \= The point is to act as a buffer so that the nearby whitespace on
 \= one side doesn't get trimmed.
 (def-chops-macro \;qq[:] home-scope caller-scope chops then
-  (compile-tvary-constant-later home-scope caller-scope chops
+  (compile-chops-constant-later home-scope caller-scope chops
     (fn -
       err.\;qq[Called the : Chops macro without an empty body])
     str.\;qq[]
@@ -589,13 +658,13 @@
 \= single-character string "[", and likewise, `[>]` corresponds to
 \= "]".
 (def-chops-macro \;qq[<] home-scope caller-scope chops then
-  (compile-tvary-constant-later home-scope caller-scope chops
+  (compile-chops-constant-later home-scope caller-scope chops
     (fn -
       err.\;qq[Called the < Chops macro without an empty body])
     str.\;qq[\<]
     then))
 (def-chops-macro \;qq[>] home-scope caller-scope chops then
-  (compile-tvary-constant-later home-scope caller-scope chops
+  (compile-chops-constant-later home-scope caller-scope chops
     (fn -
       err.\;qq[Called the < Chops macro without an empty body])
     str.\;qq[\>]
@@ -605,13 +674,10 @@
   (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
     then
   /fn unique-ns s mac
-  /c s /c mac str.tvary /list
-  /c s /istring-cons str.\;qq[]
-    (c s /c mac str.tvary-done /list
+  /c s /c mac str.chopsrun-join /list
+    (c s /c mac str.chopsrun-from-string /list
     /c s /c mac str.str /list/c s /istring-nil str.\;qq[\<])
-  /istring-cons str.\;qq[]
-    (c s /c mac str.tvary /list /c s chops)
-  /istring-cons str.\;qq[]
-    (c s /c mac str.tvary-done /list
-    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])
-  /istring-nil str.\;qq[]))
+  /c s /c mac str.chopsrun-join /list
+    (c s /c mac str.chops /list/c s chops)
+    (c s /c mac str.chopsrun-from-string /list
+    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
