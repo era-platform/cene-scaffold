@@ -4,16 +4,6 @@
 \= TODO: See if we should factor this file out into a separate
 \= codebase.
 
-\= TODO: Test this file. We're not even loading it yet, let alone
-\= using it.
-
-\= TODO: Use the chops parsers to create a convenient syntax for text
-\= variations, perhaps like this:
-\=
-\= tvary.\;qq[
-\=   The clock struck [cycle twelve|three|six|nine]. The mouse
-\=   [proceed ran up the clock|ran down the clock|was not impressed].]
-
 
 (defn regex-or a b
   (regex-if a (regex-empty/nil) b))
@@ -495,7 +485,6 @@
   /c s /istring-map chops /fn cexpr
     (str-^-uq-- s /c s /foreign/obtain-directly cexpr)))
 
-\= TODO: Implement a similar `(def-chops-macro proceed ...)`.
 (defn compile-tvary-cycler-later
   home-scope caller-scope chops cycler-name then
   
