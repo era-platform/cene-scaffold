@@ -731,14 +731,19 @@
     err.\;qq[Called tvary with more than one argument]
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
-  /basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn mode caller-scope s mac
+  /basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /get-mode/fn mode
+  /parse-chops-force-later
+    (istring-map istring /fn interpolation
+      (let mac (c mac mode)
+      /c mac str.chopsrun-from-nonfree /list interpolation))
+  /fn chops
+  /compile-chops-later home-scope caller-scope my-stx-details chops
+  /fn cexpr
+  /get-mode/fn mode /c then /let mac (c mac mode)
   /c mac str.run-chopsrun-tvary /list
-  \= TODO NOW: Decide whether to keep the current behavior or the
-  \= commented-out behavior.
-\=  /c mac str.chops /list/c s /istring-map istring /fn elem
-\=    (c mac str.chopsrun-from-nonfree /list elem)))
-  /c mac str.chops /list/c s istring))
+  /c s /foreign/obtain-directly cexpr))
 
 (defn compile-tvary-cycler-later
   home-scope caller-scope chops cycler-name then
@@ -749,28 +754,22 @@
   /scope-spread-later (scope-get str.subexprs caller-scope)
     chops-list
     (fn scope chops then
-      \= TODO NOW: We probably need to run this through `tvary`
-      \= somehow.
-      (compile-chops-later
-        home-scope scope (trivial-stx-details/nil) chops then))
+      (compile-chops-later home-scope scope (trivial-stx-details/nil)
+        chops
+      /fn cexpr
+      /get-mode/fn mode /c then /let mac (c mac mode)
+      /c mac str.run-chopsrun-tvary /list
+      /c s /foreign/obtain-directly cexpr))
   /fn chops-list
   /get-mode/fn mode /c then /let mac (c mac mode)
+  /c mac str.chopsrun-from-nonfree /list
   /c mac cycler-name /list (c mac str.uniq-name /list)
-  /c mac str.list /map chops-list /fn cexpr
-    (c s /foreign/obtain-directly cexpr)))
-
-(defn tvary-cycling-free-chopsrun name elems
-  (chopsrun-from-nonfree/tvary-cycling name
-  /map elems /run-chopsrun-tvary))
-
-(defn tvary-proceeding-free-chopsrun name elems
-  (chopsrun-from-nonfree/tvary-proceeding name
-  /map elems /run-chopsrun-tvary))
+  /c mac str.list chops-list))
 
 (def-chops-macro cycle home-scope caller-scope chops then
   (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-cycling-free-chopsrun then))
+    str.tvary-cycling then))
 
 (def-chops-macro proceed home-scope caller-scope chops then
   (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-proceeding-free-chopsrun then))
+    str.tvary-proceeding then))

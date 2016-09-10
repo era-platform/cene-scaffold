@@ -132,15 +132,12 @@
   (let tvary
     \= NOTE: The `tvary` macro and the `cycle` and `proceed` Chops
     \= macros are defined in chops.cene.
-    \= TODO: Organize this codebase in a more dependencies-first
-    \= order.
     tvary.\;qq[
       The clock struck [cycle twelve|three|six|nine], and the mouse
       [proceed ran up the clock|ran down the clock|was not impressed].
     ]
     
     \= These are some alternate, more verbose versions.
-    \= TODO NOW: See if we need to update these.
     
     \;rm[
     tvary.\;qq[
