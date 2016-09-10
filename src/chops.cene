@@ -597,7 +597,7 @@
   /c mac str.chopsrun-from-string /list
   /c mac str.str /list/c s /istring-nil constant))
 
-\= The Chops macro call `[']` becomes a `tvary` of the
+\= The Chops macro call `[']` becomes a `chopsrun-from-string` of the
 \= single-character string "|". The point is to allow "|" to be part
 \= of the text instead of being treated as a divider.
 (def-chops-macro \;qq['] home-scope caller-scope chops then
@@ -607,9 +607,9 @@
     str.\;qq[|]
     then))
 
-\= The Chops macro call `[:]` becomes a `tvary` of the empty string.
-\= The point is to act as a buffer so that the nearby whitespace on
-\= one side doesn't get trimmed.
+\= The Chops macro call `[:]` becomes a `chopsrun-from-string` of the
+\= empty string. The point is to act as a buffer so that the nearby
+\= whitespace on one side doesn't get trimmed.
 (def-chops-macro \;qq[:] home-scope caller-scope chops then
   (compile-chops-constant-later home-scope caller-scope chops
     (fn -
@@ -617,7 +617,7 @@
     str.\;qq[]
     then))
 
-\= The Chops macro calls `[<]` becomes a `tvary` of the
+\= The Chops macro call `[<]` becomes a `chopsrun-from-string` of the
 \= single-character string "[", and likewise, `[>]` corresponds to
 \= "]".
 (def-chops-macro \;qq[<] home-scope caller-scope chops then
@@ -633,6 +633,16 @@
     str.\;qq[\>]
     then))
 
+\= The Chops macro that's an empty string is equivalent to a
+\= `chopsrun-from-string` of the single-character string "[", followed
+\= by the contents, followed by a `chopsrun-from-string` of the
+\= single-character string "]". This means it's usually convenient to
+\= write `[ ...]` or `[[:]...]` to mean the literal text `[...]`.
+\=
+\= TODO: When this is used in a `tvary`, interpolations in its body
+\= are not passed to `run-chopsrun-tvary` like direct interpolations
+\= of `tvary` are. See if we can eliminate that difference.
+\=
 (def-chops-macro \;qq[] home-scope caller-scope chops then
   (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
     then
@@ -644,6 +654,18 @@
     (c mac str.chops /list/c s chops)
     (c mac str.chopsrun-from-string /list
     /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
+
+\= The Chops macro call `[in ...]` is equivalent to its contents.
+\=
+\= TODO: When this is used in a `tvary`, interpolations in its body
+\= are not passed to `run-chopsrun-tvary` like direct interpolations
+\= of `tvary` are. See if we can eliminate that difference.
+\=
+(def-chops-macro in home-scope caller-scope chops then
+  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+    then
+  /fn mode caller-scope s mac
+  /c mac str.chops /list/c s chops))
 
 
 
