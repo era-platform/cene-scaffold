@@ -8,7 +8,7 @@
 
 (def-macro istr home-scope caller-scope my-stx-details args then
   (basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn unique-ns s mac
+  /fn mode caller-scope s mac
   /cast args cons istr args
     err.\;qq[Called istr without enough arguments]
   /cast args nil
@@ -20,18 +20,17 @@
       (case istr
         
         istring-cons prefix interpolation rest
-        (cons (c s /c mac str.str /list/c s istring-nil.prefix)
+        (cons (c mac str.str /list/c s istring-nil.prefix)
         /cons interpolation
         /c loop rest)
         
         istring-nil suffix
-        (list/c s /c mac str.str /list/c s istring-nil.suffix)
+        (list/c mac str.str /list/c s istring-nil.suffix)
         
         err.\;qq[
           Called istr with a value that wasn't an interpolated
           string]))
-  /c s /c mac str.strings-append-later /list/c s /c mac str.list
-  /c loop istr))
+  /c mac str.strings-append-later /list/c mac str.list /c loop istr))
 
 (defn copy-paths mode in out
   (case (input-path-type mode in)

@@ -14,22 +14,16 @@
 
 (def-macro uniq-dexable
   home-scope caller-scope my-stx-details args then
-  (cast caller-scope
+  (cast args nil
+    err.\;qq[Called uniq-dexable with more than zero arguments]
+  /basic-pure-macro home-scope caller-scope my-stx-details then
+  /fn mode caller-scope s mac
+  /cast caller-scope
     scope caller-unique-ns caller-def-ns caller-qualify
     err.\;qq[Internal error]
-  /cast args nil
-    err.\;qq[Called uniq-dexable with more than zero arguments]
-  /join-effects procure-claim.caller-unique-ns
-  /get-mode/fn mode
   /let main-tag-name
     (procure-name mode /ns-get str.main-tag-name caller-unique-ns)
-  /basic-pure-macro home-scope
-    (scope (ns-get str.body caller-unique-ns)
-      caller-def-ns caller-qualify)
-    my-stx-details
-    then
-  /fn unique-ns s mac
-  /c s /c mac str.dexable /list
+  /c mac str.dexable /list
     (c s /foreign/obtain-directly/cexpr-dex-struct main-tag-name
     /list)
     (c s /foreign/obtain-directly/cexpr-construct main-tag-name
@@ -39,8 +33,8 @@
   (cast args nil
     err.\;qq[Called uniq-name with more than zero arguments]
   /basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn unique-ns s mac
-  /c s /c mac str.name-of /list/c s /c mac str.uniq-dexable /list))
+  /fn mode caller-scope s mac
+  /c mac str.name-of /list/c mac str.uniq-dexable /list))
 
 (defn is-proper-list list
   (case list
@@ -136,11 +130,6 @@
   (c s /list (c s /istring-nil str.^)
   /c s /list (c s /istring-nil str.uq)
   /c s /list (c s /istring-nil str.-) contents))
-
-(defn scope-get string scope
-  (cast scope scope unique-ns def-ns qualify
-    err.\;qq[Expected a scope that was a scope]
-  /scope (ns-get string unique-ns) def-ns qualify))
 
 (defn scope-spread-later scope list combine-later then
   (case list
@@ -500,15 +489,7 @@
 (def-macro def-chops-macro
   home-scope caller-scope my-stx-details args then
   
-  (cast caller-scope
-    scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Internal error]
-  /join-effects procure-claim.caller-unique-ns
-  /let subscope
-    (fn string
-      (scope (ns-get string caller-unique-ns) caller-def-ns
-        caller-qualify))
-  /cast args cons macro-name fn-body
+  (cast args cons macro-name fn-body
     err.\;qq[Called def-chops-macro with fewer than one argument]
   \= TODO: Support more than just string names here.
   /cast macro-name stx - macro-name
@@ -516,15 +497,15 @@
       Called def-chops-macro with a macro name that wasn't a stx]
   /cast macro-name istring-nil macro-name-string
     err.\;qq[Called def-chops-macro with a non-string macro name]
-  /basic-nil-macro
-    home-scope (c subscope str.body) my-stx-details then
-  /fn unique-ns s mac
-  /compile-expression-later (c subscope str.compile-fn)
-    (c s /c mac str.fn fn-body)
+  /basic-nil-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac
+  /get-mode/fn mode /let mac (c mac mode)
+  /compile-expression-later (scope-get str.compile-fn caller-scope)
+    (c mac str.fn fn-body)
   /fn func
   /get-mode/fn mode
   /getdef-def-val (chops-macro-getdef macro-name-string caller-scope)
-  /c (eval-cexpr mode func) /c subscope str.home))
+  /c (eval-cexpr mode func) /scope-get str.home caller-scope))
 
 
 (def-struct free-chopsrun func)
@@ -552,10 +533,8 @@
 (defn compile-chops-later
   home-scope caller-scope my-stx-details chops then
   
-  (cast caller-scope
-    scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Expected a caller-scope that was a scope]
-  /join-effects procure-claim.caller-unique-ns
+  (basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
   /istring-scope-spread-later (scope-get str.subexprs caller-scope)
     chops
     (fn scope interpolation then
@@ -563,28 +542,36 @@
         (compile-expression-later scope expr then)
         (chops-macroexpand-later scope interpolation then)))
   /fn chops
-  /basic-pure-macro home-scope (scope-get str.body caller-scope)
-    my-stx-details
-    then
-  /fn unique-ns s mac
+  /get-mode/fn mode /c then /let mac (c mac mode)
   /pass-to chops /fix/fn loop chops
     (case chops
       
       istring-nil string
-      (c s /c mac str.chopsrun-from-string /list
-      /c s /c mac str.str /list/c s /istring-nil string)
+      (c mac str.chopsrun-from-string /list
+      /c mac str.str /list/c s /istring-nil string)
       
       istring-cons prefix interpolation rest
-      (c s /c mac str.chopsrun-join /list
-        (c s /c mac str.chopsrun-from-string /list
-        /c s /c mac str.str /list/c s /istring-nil prefix)
-      /c s /c mac str.chopsrun-join /list
+      (c mac str.chopsrun-join /list
+        (c mac str.chopsrun-from-string /list
+        /c mac str.str /list/c s /istring-nil prefix)
+      /c mac str.chopsrun-join /list
         (c s /foreign/obtain-directly interpolation)
       /c loop rest)
       
       err.\;qq[
         Expected an istring that was an istring-nil or an
         istring-cons])))
+
+(defn parse-chops-force-later istring then
+  (parse-chops-later istring /fn parse-chops-result
+  /cast parse-chops-result
+    parse-chops-result closed-stack chops opened-stack
+    err.\;qq[Internal error]
+  /cast closed-stack nil
+    err.\;qq[Unmatched \>]
+  /cast opened-stack nil
+    err.\;qq[Unmatched \<]
+  /c then chops))
 
 (def-macro chops home-scope caller-scope my-stx-details args then
   (cast args cons istring args
@@ -593,14 +580,7 @@
     err.\;qq[Called chops with more than one argument]
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
-  /parse-chops-later istring /fn parse-chops-result
-  /cast parse-chops-result
-    parse-chops-result closed-stack chops opened-stack
-    err.\;qq[Internal error]
-  /cast closed-stack nil
-    err.\;qq[Unmatched \>]
-  /cast opened-stack nil
-    err.\;qq[Unmatched \<]
+  /parse-chops-force-later istring /fn chops
   /compile-chops-later
     home-scope caller-scope my-stx-details chops then))
 
@@ -613,9 +593,9 @@
   /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
   /basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
     then
-  /fn unique-ns s mac
-  /c s /c mac str.chopsrun-from-string /list
-  /c s /c mac str.str /list/c s /istring-nil constant))
+  /fn mode caller-scope s mac
+  /c mac str.chopsrun-from-string /list
+  /c mac str.str /list/c s /istring-nil constant))
 
 \= The Chops macro call `[']` becomes a `tvary` of the
 \= single-character string "|". The point is to allow "|" to be part
@@ -656,14 +636,14 @@
 (def-chops-macro \;qq[] home-scope caller-scope chops then
   (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
     then
-  /fn unique-ns s mac
-  /c s /c mac str.chopsrun-join /list
-    (c s /c mac str.chopsrun-from-string /list
-    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\<])
-  /c s /c mac str.chopsrun-join /list
-    (c s /c mac str.chops /list/c s chops)
-    (c s /c mac str.chopsrun-from-string /list
-    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
+  /fn mode caller-scope s mac
+  /c mac str.chopsrun-join /list
+    (c mac str.chopsrun-from-string /list
+    /c mac str.str /list/c s /istring-nil str.\;qq[\<])
+  /c mac str.chopsrun-join /list
+    (c mac str.chops /list/c s chops)
+    (c mac str.chopsrun-from-string /list
+    /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
 
 
 
@@ -752,22 +732,20 @@
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
   /basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn unique-ns s mac
-  /c s /c mac str.run-chopsrun-tvary /list
+  /fn mode caller-scope s mac
+  /c mac str.run-chopsrun-tvary /list
   \= TODO NOW: Decide whether to keep the current behavior or the
   \= commented-out behavior.
-\=  /c s /c mac str.chops /list/c s /istring-map istring /fn elem
-\=    (c s /c mac str.chopsrun-from-nonfree /list elem)))
-  /c s /c mac str.chops /list/c s istring))
+\=  /c mac str.chops /list/c s /istring-map istring /fn elem
+\=    (c mac str.chopsrun-from-nonfree /list elem)))
+  /c mac str.chops /list/c s istring))
 
 (defn compile-tvary-cycler-later
   home-scope caller-scope chops cycler-name then
   
-  (cast caller-scope
-    scope caller-unique-ns caller-def-ns caller-qualify
-    err.\;qq[Expected a caller-scope that was a scope]
-  /join-effects procure-claim.caller-unique-ns
-  /chops-split-and-trim-later chops /fn chops-list
+  (chops-split-and-trim-later chops /fn chops-list
+  /basic-macro home-scope caller-scope (trivial-stx-details/nil) then
+  /fn caller-scope s mac then
   /scope-spread-later (scope-get str.subexprs caller-scope)
     chops-list
     (fn scope chops then
@@ -776,12 +754,9 @@
       (compile-chops-later
         home-scope scope (trivial-stx-details/nil) chops then))
   /fn chops-list
-  /basic-pure-macro home-scope (scope-get str.body caller-scope)
-    (trivial-stx-details/nil)
-    then
-  /fn unique-ns s mac
-  /c s /c mac cycler-name /list (c s /c mac str.uniq-name /list)
-  /c s /c mac str.list /map chops-list /fn cexpr
+  /get-mode/fn mode /c then /let mac (c mac mode)
+  /c mac cycler-name /list (c mac str.uniq-name /list)
+  /c mac str.list /map chops-list /fn cexpr
     (c s /foreign/obtain-directly cexpr)))
 
 (defn tvary-cycling-free-chopsrun name elems

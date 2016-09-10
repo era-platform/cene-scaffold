@@ -13,7 +13,7 @@
     "npm": ">= 1.0.0"
   },
   "dependencies": {
-    "cene": ">= 0.0.21"
+    "cene": ">= 0.0.22"
   },
   "scripts": {
     "build": "cene build.cene --in src --out fin"

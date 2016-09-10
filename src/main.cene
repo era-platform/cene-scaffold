@@ -38,7 +38,7 @@
 
 (def-macro go home-scope caller-scope my-stx-details args then
   (basic-nil-macro home-scope caller-scope my-stx-details then
-  /fn unique-ns s mac
+  /fn caller-scope s mac
   /c istr.\;qq[build] /fn place
   /c istr.\;qq[Hello \;uq;ls`place`.\n] /fn hello-place
   /get-mode/fn mode
@@ -215,7 +215,7 @@
 
 (def-macro tvary-go home-scope caller-scope my-stx-details args then
   (basic-nil-macro home-scope caller-scope my-stx-details then
-  /fn unique-ns s mac
+  /fn caller-scope s mac
   /tvary-demo-later/fn demo-results
   /get-mode/fn mode
   /join-effects
