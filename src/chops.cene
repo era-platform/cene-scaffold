@@ -49,9 +49,11 @@
   /nope/nil))
 
 
+\= TODO: See if we'll use this.
 (defn regex-or a b
   (regex-if a (regex-empty/nil) b))
 
+\= TODO: See if we'll use this.
 (defn regex-seq a b
   (regex-if a b /regex-give-up/nil))
 
@@ -61,9 +63,11 @@
 (defn regex-lookahead regex
   (regex-not/regex-not regex))
 
-\= TODO: See if we'll use these.
+\= TODO: See if we'll use this.
 (defn unicode-scalar string
   (string-get-unicode-scalar string /int-zero/nil))
+
+\= TODO: See if we'll use this.
 (defn regex-range a b
   (regex-one-in-range unicode-scalar.a unicode-scalar.b))
 
@@ -100,6 +104,7 @@
       istring-cons]))
 
 
+\= TODO: See if we'll use this.
 (defn int-plus a b
   (call-fuse (fuse-int-by-plus/nil) a b))
 
@@ -120,11 +125,13 @@
   /definer-define def (dex-give-up/nil) val))
 
 
+\= TODO: See if we'll use this.
 (defn str-^-qq-- s contents
   (c s /list (c s /istring-nil str.^)
   /c s /list (c s /istring-nil str.qq)
   /c s /list (c s /istring-nil str.-) contents))
 
+\= TODO: See if we'll use this.
 (defn str-^-uq-- s contents
   (c s /list (c s /istring-nil str.^)
   /c s /list (c s /istring-nil str.uq)
@@ -179,7 +186,7 @@
       Expected an istring that was an istring-nil or an
       istring-cons]))
 
-\= TODO NOW: See if we actually need the free monad operations.
+\= TODO: See if we'll use these free monad operations.
 (def-struct free-monad-computation func)
 (def-struct monad-ops done seq)
 
