@@ -5,6 +5,50 @@
 \= codebase.
 
 
+
+\= General-purpose utilities =========================================
+
+
+(defn pass-to arg func
+  (c func arg))
+
+(def-macro uniq-dexable
+  home-scope caller-scope my-stx-details args then
+  (cast caller-scope
+    scope caller-unique-ns caller-def-ns caller-qualify
+    err.\;qq[Internal error]
+  /cast args nil
+    err.\;qq[Called uniq-dexable with more than zero arguments]
+  /join-effects procure-claim.caller-unique-ns
+  /get-mode/fn mode
+  /let main-tag-name
+    (procure-name mode /ns-get str.main-tag-name caller-unique-ns)
+  /basic-pure-macro home-scope
+    (scope (ns-get str.body caller-unique-ns)
+      caller-def-ns caller-qualify)
+    my-stx-details
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.dexable /list
+    (c s /foreign/obtain-directly/cexpr-dex-struct main-tag-name
+    /list)
+    (c s /foreign/obtain-directly/cexpr-construct main-tag-name
+    /list)))
+
+(def-macro uniq-name home-scope caller-scope my-stx-details args then
+  (cast args nil
+    err.\;qq[Called uniq-name with more than zero arguments]
+  /basic-pure-macro home-scope caller-scope my-stx-details then
+  /fn unique-ns s mac
+  /c s /c mac str.name-of /list/c s /c mac str.uniq-dexable /list))
+
+(defn is-proper-list list
+  (case list
+    nil (yep/nil)
+    cons - rest is-proper-list.rest
+  /nope/nil))
+
+
 (defn regex-or a b
   (regex-if a (regex-empty/nil) b))
 
@@ -58,6 +102,108 @@
 
 (defn int-plus a b
   (call-fuse (fuse-int-by-plus/nil) a b))
+
+
+(defn procure-sub-ns name ns
+  (proj1 yep /table-get name
+  /procure-sub-ns-table (table-shadow name (yep/nil) /table-empty/nil)
+    ns))
+
+(defn getdef-get mode getdef
+  (cast getdef getdef get def
+    err.\;qq[Expected a getdef that was a getdef]
+  /c get mode))
+
+(defn getdef-def-val getdef val
+  (cast getdef getdef get def
+    err.\;qq[Expected a getdef that was a getdef]
+  /definer-define def (dex-give-up/nil) val))
+
+
+(defn str-^-qq-- s contents
+  (c s /list (c s /istring-nil str.^)
+  /c s /list (c s /istring-nil str.qq)
+  /c s /list (c s /istring-nil str.-) contents))
+
+(defn str-^-uq-- s contents
+  (c s /list (c s /istring-nil str.^)
+  /c s /list (c s /istring-nil str.uq)
+  /c s /list (c s /istring-nil str.-) contents))
+
+(defn scope-get string scope
+  (cast scope scope unique-ns def-ns qualify
+    err.\;qq[Expected a scope that was a scope]
+  /scope (ns-get string unique-ns) def-ns qualify))
+
+(defn scope-spread-later scope list combine-later then
+  (case list
+    
+    nil (c-later then /nil)
+    
+    cons first rest
+    (c combine-later (scope-get str.first scope) first /fn first
+    /scope-spread-later (scope-get str.rest scope) rest
+      combine-later
+    /fn rest
+    /c then /cons first rest)
+    
+    err.\;qq[Expected a list that was a nil or a cons]))
+
+(defn istring-scope-spread-later scope istring combine-later then
+  (case istring
+    
+    istring-nil - (c-later then istring)
+    
+    istring-cons prefix interpolation rest
+    (c combine-later (scope-get str.first scope) interpolation
+    /fn interpolation
+    /istring-scope-spread-later (scope-get str.rest scope) rest
+      combine-later
+    /fn rest
+    /c then /istring-cons prefix interpolation rest)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+(defn istring-map istring func
+  (case istring
+    
+    istring-nil - istring
+    
+    istring-cons prefix interpolation rest
+    (istring-cons prefix (c func interpolation)
+    /istring-map rest func)
+    
+    err.\;qq[
+      Expected an istring that was an istring-nil or an
+      istring-cons]))
+
+\= TODO NOW: See if we actually need the free monad operations.
+(def-struct free-monad-computation func)
+(def-struct monad-ops done seq)
+
+(defn free-monad-done result
+  (free-monad-computation/fn monad-ops
+  /cast monad-ops monad-ops done seq
+    err.\;qq[Expected a monad-ops that was a monad-ops]
+  /c done result))
+
+(defn free-monad-seq first second
+  (cast first free-monad-computation first
+    err.\;qq[Expected a first that was a free-monad-computation]
+  /free-monad-computation/fn monad-ops
+  /cast monad-ops monad-ops done seq
+    err.\;qq[Expected a monad-ops that was a monad-ops]
+  /c seq (c first monad-ops) /fn first-result
+  /cast first-result free-monad-computation first-result
+    err.\;qq[
+      Expected a first-result that was a free-monad-computation]
+  /c first-result monad-ops))
+
+
+
+\= The Chops markup macro system =====================================
 
 
 (def-struct parse-chops-result closed-stack chops opened-stack)
@@ -321,21 +467,6 @@
 
 (def-struct chops-macro-ns)
 
-(defn procure-sub-ns name ns
-  (proj1 yep /table-get name
-  /procure-sub-ns-table (table-shadow name (yep/nil) /table-empty/nil)
-    ns))
-
-(defn getdef-get mode getdef
-  (cast getdef getdef get def
-    err.\;qq[Expected a getdef that was a getdef]
-  /c get mode))
-
-(defn getdef-def-val getdef val
-  (cast getdef getdef get def
-    err.\;qq[Expected a getdef that was a getdef]
-  /definer-define def (dex-give-up/nil) val))
-
 (defn chops-macro-getdef macro-name-string scope
   (cast scope scope unique-ns def-ns qualify
     err.\;qq[Expected a scope that was a scope]
@@ -388,87 +519,6 @@
   /getdef-def-val (chops-macro-getdef macro-name-string caller-scope)
   /c (eval-cexpr mode func) /c subscope str.home))
 
-
-(defn str-^-qq-- s contents
-  (c s /list (c s /istring-nil str.^)
-  /c s /list (c s /istring-nil str.qq)
-  /c s /list (c s /istring-nil str.-) contents))
-
-(defn str-^-uq-- s contents
-  (c s /list (c s /istring-nil str.^)
-  /c s /list (c s /istring-nil str.uq)
-  /c s /list (c s /istring-nil str.-) contents))
-
-(defn scope-get string scope
-  (cast scope scope unique-ns def-ns qualify
-    err.\;qq[Expected a scope that was a scope]
-  /scope (ns-get string unique-ns) def-ns qualify))
-
-(defn scope-spread-later scope list combine-later then
-  (case list
-    
-    nil (c-later then /nil)
-    
-    cons first rest
-    (c combine-later (scope-get str.first scope) first /fn first
-    /scope-spread-later (scope-get str.rest scope) rest
-      combine-later
-    /fn rest
-    /c then /cons first rest)
-    
-    err.\;qq[Expected a list that was a nil or a cons]))
-
-(defn istring-scope-spread-later scope istring combine-later then
-  (case istring
-    
-    istring-nil - (c-later then istring)
-    
-    istring-cons prefix interpolation rest
-    (c combine-later (scope-get str.first scope) interpolation
-    /fn interpolation
-    /istring-scope-spread-later (scope-get str.rest scope) rest
-      combine-later
-    /fn rest
-    /c then /istring-cons prefix interpolation rest)
-    
-    err.\;qq[
-      Expected an istring that was an istring-nil or an
-      istring-cons]))
-
-(defn istring-map istring func
-  (case istring
-    
-    istring-nil - istring
-    
-    istring-cons prefix interpolation rest
-    (istring-cons prefix (c func interpolation)
-    /istring-map rest func)
-    
-    err.\;qq[
-      Expected an istring that was an istring-nil or an
-      istring-cons]))
-
-\= TODO NOW: See if we actually need the free monad operations.
-(def-struct free-monad-computation func)
-(def-struct monad-ops done seq)
-
-(defn free-monad-done result
-  (free-monad-computation/fn monad-ops
-  /cast monad-ops monad-ops done seq
-    err.\;qq[Expected a monad-ops that was a monad-ops]
-  /c done result))
-
-(defn free-monad-seq first second
-  (cast first free-monad-computation first
-    err.\;qq[Expected a first that was a free-monad-computation]
-  /free-monad-computation/fn monad-ops
-  /cast monad-ops monad-ops done seq
-    err.\;qq[Expected a monad-ops that was a monad-ops]
-  /c seq (c first monad-ops) /fn first-result
-  /cast first-result free-monad-computation first-result
-    err.\;qq[
-      Expected a first-result that was a free-monad-computation]
-  /c first-result monad-ops))
 
 (def-struct free-chopsrun func)
 (def-struct chopsrun-ops from-string join)
@@ -547,6 +597,127 @@
   /compile-chops-later
     home-scope caller-scope my-stx-details chops then))
 
+
+(defn compile-chops-constant-later
+  home-scope caller-scope chops err-fn constant then
+  
+  (chops-trim-later chops /fn trimmed
+  /cast trimmed istring-nil trimmed (c err-fn /nil)
+  /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
+  /basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.chopsrun-from-string /list
+  /c s /c mac str.str /list/c s /istring-nil constant))
+
+\= The Chops macro call `[']` becomes a `tvary` of the
+\= single-character string "|". The point is to allow "|" to be part
+\= of the text instead of being treated as a divider.
+(def-chops-macro \;qq['] home-scope caller-scope chops then
+  (compile-chops-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the | Chops macro without an empty body])
+    str.\;qq[|]
+    then))
+
+\= The Chops macro call `[:]` becomes a `tvary` of the empty string.
+\= The point is to act as a buffer so that the nearby whitespace on
+\= one side doesn't get trimmed.
+(def-chops-macro \;qq[:] home-scope caller-scope chops then
+  (compile-chops-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the : Chops macro without an empty body])
+    str.\;qq[]
+    then))
+
+\= The Chops macro calls `[<]` becomes a `tvary` of the
+\= single-character string "[", and likewise, `[>]` corresponds to
+\= "]".
+(def-chops-macro \;qq[<] home-scope caller-scope chops then
+  (compile-chops-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the < Chops macro without an empty body])
+    str.\;qq[\<]
+    then))
+(def-chops-macro \;qq[>] home-scope caller-scope chops then
+  (compile-chops-constant-later home-scope caller-scope chops
+    (fn -
+      err.\;qq[Called the < Chops macro without an empty body])
+    str.\;qq[\>]
+    then))
+
+(def-chops-macro \;qq[] home-scope caller-scope chops then
+  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+    then
+  /fn unique-ns s mac
+  /c s /c mac str.chopsrun-join /list
+    (c s /c mac str.chopsrun-from-string /list
+    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\<])
+  /c s /c mac str.chopsrun-join /list
+    (c s /c mac str.chops /list/c s chops)
+    (c s /c mac str.chopsrun-from-string /list
+    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
+
+
+
+\= Text variations ===================================================
+
+
+(defn tvary-proceeding name list
+  (cast is-proper-list.list yep -
+    err.\;qq[Expected a list that was a proper list]
+  /case list nil
+    err.\;qq[Expected a list that was a nonempty list]
+  /fn state then
+    (later
+    /let old-list (case (table-get name state) yep list list list)
+    /cast old-list cons chosen-tvary rest
+      err.\;qq[
+        In the state of tvary-proceeding, expected a list that was a
+        nonempty proper list]
+    /let new-list
+      (case rest
+        nil old-list
+        cons - -b rest
+        err.\;qq[
+          In the state of tvary-proceeding, expected a list that was a
+          proper list])
+    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+
+(defn tvary-cycling name list
+  (cast is-proper-list.list yep -
+    err.\;qq[Expected a list that was a proper list]
+  /case list nil
+    err.\;qq[Expected a list that was a nonempty list]
+  /fn state then
+    (later
+    /let old-list (case (table-get name state) yep list list list)
+    /cast old-list cons chosen-tvary rest
+      err.\;qq[
+        In the state of tvary-cycling, expected a list that was a
+        nonempty proper list]
+    /let new-list
+      (case rest
+        nil list
+        cons - -b rest
+        err.\;qq[
+          In the state of tvary-cycling, expected a list that was a
+          proper list])
+    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+
+(defn tvary-then tvary next state then
+  (c tvary state /fn result
+  /cast result folding state result
+    err.\;qq[Expected a tvary result that was a folding]
+  /c next result state then))
+
+(defn tvary-done result state then
+  (c-later then /folding state result))
+
+(defn tvary-later-done result-later state then
+  (c result-later /fn result /c then /folding state result))
+
+
 (defn run-chopsrun-tvary chopsrun
   (cast chopsrun free-chopsrun chopsrun
     err.\;qq[Expected a chopsrun that was a free-chopsrun]
@@ -621,63 +792,3 @@
 (def-chops-macro proceed home-scope caller-scope chops then
   (compile-tvary-cycler-later home-scope caller-scope chops
     str.tvary-proceeding-free-chopsrun then))
-
-(defn compile-chops-constant-later
-  home-scope caller-scope chops err-fn constant then
-  
-  (chops-trim-later chops /fn trimmed
-  /cast trimmed istring-nil trimmed (c err-fn /nil)
-  /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
-  /basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
-    then
-  /fn unique-ns s mac
-  /c s /c mac str.chopsrun-from-string /list
-  /c s /c mac str.str /list/c s /istring-nil constant))
-
-\= The Chops macro call `[']` becomes a `tvary` of the
-\= single-character string "|". The point is to allow "|" to be part
-\= of the text instead of being treated as a divider.
-(def-chops-macro \;qq['] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
-    (fn -
-      err.\;qq[Called the | Chops macro without an empty body])
-    str.\;qq[|]
-    then))
-
-\= The Chops macro call `[:]` becomes a `tvary` of the empty string.
-\= The point is to act as a buffer so that the nearby whitespace on
-\= one side doesn't get trimmed.
-(def-chops-macro \;qq[:] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
-    (fn -
-      err.\;qq[Called the : Chops macro without an empty body])
-    str.\;qq[]
-    then))
-
-\= The Chops macro calls `[<]` becomes a `tvary` of the
-\= single-character string "[", and likewise, `[>]` corresponds to
-\= "]".
-(def-chops-macro \;qq[<] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
-    (fn -
-      err.\;qq[Called the < Chops macro without an empty body])
-    str.\;qq[\<]
-    then))
-(def-chops-macro \;qq[>] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
-    (fn -
-      err.\;qq[Called the < Chops macro without an empty body])
-    str.\;qq[\>]
-    then))
-
-(def-chops-macro \;qq[] home-scope caller-scope chops then
-  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
-    then
-  /fn unique-ns s mac
-  /c s /c mac str.chopsrun-join /list
-    (c s /c mac str.chopsrun-from-string /list
-    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\<])
-  /c s /c mac str.chopsrun-join /list
-    (c s /c mac str.chops /list/c s chops)
-    (c s /c mac str.chopsrun-from-string /list
-    /c s /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
