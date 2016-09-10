@@ -724,6 +724,27 @@
       /string-append-later a-result b-result /fn result
       /c then /folding state result))))
 
+(defn compile-tvary-chops-later
+  home-scope caller-scope my-stx-details chops then
+  
+  (basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /get-mode/fn mode
+  /compile-chops-later home-scope caller-scope my-stx-details
+    (istring-map chops /fn interpolation
+      \= We do special processing of interpolations that are at the
+      \= shallowest level, but we leave the others alone. The others
+      \= are inside Chops macro calls that may have their own
+      \= treatments of interpolations.
+      (case interpolation foreign expr
+        (let mac (c mac mode)
+        /foreign/c mac str.chopsrun-from-nonfree /list expr)
+        interpolation))
+  /fn cexpr
+  /get-mode/fn mode /c then /let mac (c mac mode)
+  /c mac str.run-chopsrun-tvary /list
+  /c s /foreign/obtain-directly cexpr))
+
 (def-macro tvary home-scope caller-scope my-stx-details args then
   (cast args cons istring args
     err.\;qq[Called tvary with fewer than one argument]
@@ -731,19 +752,9 @@
     err.\;qq[Called tvary with more than one argument]
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
-  /basic-macro home-scope caller-scope my-stx-details then
-  /fn caller-scope s mac then
-  /get-mode/fn mode
-  /parse-chops-force-later
-    (istring-map istring /fn interpolation
-      (let mac (c mac mode)
-      /c mac str.chopsrun-from-nonfree /list interpolation))
-  /fn chops
-  /compile-chops-later home-scope caller-scope my-stx-details chops
-  /fn cexpr
-  /get-mode/fn mode /c then /let mac (c mac mode)
-  /c mac str.run-chopsrun-tvary /list
-  /c s /foreign/obtain-directly cexpr))
+  /parse-chops-force-later istring /fn chops
+  /compile-tvary-chops-later
+    home-scope caller-scope my-stx-details chops then))
 
 (defn compile-tvary-cycler-later
   home-scope caller-scope chops cycler-name then
@@ -754,12 +765,11 @@
   /scope-spread-later (scope-get str.subexprs caller-scope)
     chops-list
     (fn scope chops then
-      (compile-chops-later home-scope scope (trivial-stx-details/nil)
+      (compile-tvary-chops-later home-scope scope
+        (trivial-stx-details/nil)
         chops
       /fn cexpr
-      /get-mode/fn mode /c then /let mac (c mac mode)
-      /c mac str.run-chopsrun-tvary /list
-      /c s /foreign/obtain-directly cexpr))
+      /c then /c s /foreign/obtain-directly cexpr))
   /fn chops-list
   /get-mode/fn mode /c then /let mac (c mac mode)
   /c mac str.chopsrun-from-nonfree /list
