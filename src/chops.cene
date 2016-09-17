@@ -459,7 +459,7 @@
   /fn istrings
   /map-later istrings (chops-trim-later) then))
 
-(def-struct chops-macro-occurrence name)
+(def-struct chops-macro-occurrence string)
 
 (def-struct chops-macro-ns)
 
@@ -470,9 +470,8 @@
     (procure-sub-ns
       (c qualify
       /name-of/dexable
-        (dex-struct chops-macro-occurrence /dex-name/nil)
-      /chops-macro-occurrence
-      /name-of/dexable (dex-string/nil) macro-name-string)
+        (dex-struct chops-macro-occurrence /dex-string/nil)
+      /chops-macro-occurrence macro-name-string)
     /procure-sub-ns
       (name-of/dexable dex-struct.chops-macro-ns /chops-macro-ns)
       def-ns)

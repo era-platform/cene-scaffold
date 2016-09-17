@@ -56,7 +56,10 @@
   /sloppy-javascript-quine mode
     (cast
       (procure-constructor-glossary-getdef def-ns
-      /c qualify /name-of/dexable (dex-string/nil) string-name)
+      /c qualify
+      /name-of/dexable
+        (dex-struct constructor-occurrence /dex-string/nil)
+      /constructor-occurrence string-name)
       getdef get def
       err.\;qq[Internal error]
     /cast (c get mode)
