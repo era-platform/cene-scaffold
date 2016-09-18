@@ -53,7 +53,7 @@
   (cast scope scope - def-ns qualify
     err.\;qq[Expected a scope value of type scope]
   /output-path-blob-utf-8 out
-  /sloppy-javascript-quine mode
+  /picky-javascript-quine mode
     (cast
       (procure-constructor-glossary-getdef def-ns
       /c qualify
