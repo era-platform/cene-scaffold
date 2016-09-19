@@ -24,7 +24,8 @@
   /let main-tag-name
     (procure-name mode /ns-get str.main-tag-name caller-unique-ns)
   /c mac str.dexable /list
-    (c s /foreign/obtain-directly/cexpr-dex-struct main-tag-name
+    (c mac str.dex-by-cline /list
+    /c s /foreign/obtain-directly/cexpr-cline-struct main-tag-name
     /list)
     (c s /foreign/obtain-directly/cexpr-construct main-tag-name
     /list)))
@@ -41,6 +42,11 @@
     nil (yep/nil)
     cons - rest is-proper-list.rest
   /nope/nil))
+
+(defn int-compare a b
+  (cast (call-cline (cline-int/nil) a b) yep result
+    err.\;qq[Expected two integers]
+    result))
 
 
 \= TODO: See if we'll use this.
