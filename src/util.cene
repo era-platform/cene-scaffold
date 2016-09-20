@@ -51,7 +51,7 @@
 
 (defn make-quine mode scope out string-name top-level-vars
   (cast scope scope - def-ns qualify
-    err.\;qq[Expected a scope value of type scope]
+    err.\;qq[Expected a scope value that was a scope]
   /output-path-blob-utf-8 out
   /picky-javascript-quine mode
     (cast
