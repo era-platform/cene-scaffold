@@ -596,7 +596,7 @@
   (chops-trim-later chops /fn trimmed
   /cast trimmed istring-nil trimmed (c err-fn /nil)
   /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
-  /basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+  /basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
     then
   /fn mode caller-scope s mac
   /c mac str.chopsrun-from-string /list
@@ -649,7 +649,7 @@
 \= of `tvary` are. See if we can eliminate that difference.
 \=
 (def-chops-macro \;qq[] home-scope caller-scope chops then
-  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+  (basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
     then
   /fn mode caller-scope s mac
   /c mac str.chopsrun-join /list
@@ -667,7 +667,7 @@
 \= of `tvary` are. See if we can eliminate that difference.
 \=
 (def-chops-macro in home-scope caller-scope chops then
-  (basic-pure-macro home-scope caller-scope (trivial-stx-details/nil)
+  (basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
     then
   /fn mode caller-scope s mac
   /c mac str.chops /list/c s chops))
@@ -787,13 +787,12 @@
   home-scope caller-scope chops cycler-name then
   
   (chops-split-and-trim-later chops /fn chops-list
-  /basic-macro home-scope caller-scope (trivial-stx-details/nil) then
+  /basic-macro home-scope caller-scope (stx-details-empty/nil) then
   /fn caller-scope s mac then
-  /scope-spread-later (scope-get str.subexprs caller-scope)
-    chops-list
+  /scope-spread-later (scope-get str.subexprs caller-scope) chops-list
     (fn scope chops then
       (compile-tvary-chops-later home-scope scope
-        (trivial-stx-details/nil)
+        (stx-details-empty/nil)
         chops
       /fn cexpr
       /c then /c s /foreign/obtain-directly cexpr))

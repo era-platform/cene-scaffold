@@ -13,8 +13,13 @@
     err.\;qq[Called istr without enough arguments]
   /cast args nil
     err.\;qq[Called istr with too many arguments]
-  /cast istr stx - istr
+  /cast istr stx istr-stx-details istr
     err.\;qq[Called istr with an argument that wasn't a stx]
+  /let augment-stx
+    (fn stx-details orig
+      (cast orig stx orig-stx-details expr
+        err.\;qq[Expected an orig that was a stx]
+      /stx (stx-details-join stx-details orig-stx-details) expr))
   /let loop
     (fix/fn loop istr
       (case istr
@@ -30,7 +35,8 @@
         err.\;qq[
           Called istr with a value that wasn't an interpolated
           string]))
-  /c mac str.strings-append-later /list/c mac str.list /c loop istr))
+  /c mac str.strings-append-later /list
+  /c augment-stx istr-stx-details /c mac str.list /c loop istr))
 
 (defn copy-paths mode in out
   (case (input-path-type mode in)
