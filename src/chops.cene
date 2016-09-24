@@ -469,39 +469,49 @@
 
 (def-struct chops-macro-ns)
 
-(defn chops-macro-getdef macro-name-string scope
+(defn chops-macro-getdef macro-name scope
   (cast scope scope unique-ns def-ns qualify
     err.\;qq[Expected a scope that was a scope]
   /procure-contributed-element-getdef
-    (procure-sub-ns
-      (c qualify
-      /name-of/dexable
-        (dex-struct chops-macro-occurrence /dex-string/nil)
-      /chops-macro-occurrence macro-name-string)
+    (procure-sub-ns macro-name
     /procure-sub-ns
       (name-of/dexable dex-struct.chops-macro-ns /chops-macro-ns)
       def-ns)
     (name-of/dexable (dex-string/nil) str.\;qq[val])))
 
 (defn chops-macroexpand-later scope istring then
-  (parse-chops-macro-call-later istring /fn call
+  (cast scope scope unique-ns def-ns qualify
+    err.\;qq[Expected a scope that was a scope]
+  /parse-chops-macro-call-later istring /fn call
   /cast call chops-macro-call macro body
     err.\;qq[Internal error]
   /get-mode/fn mode
-  /c (getdef-get mode /chops-macro-getdef macro scope)
-    scope body then))
+  /c
+    (getdef-get mode /chops-macro-getdef
+      (c qualify /name-of/dexable
+        (dex-struct chops-macro-occurrence /dex-string/nil)
+      /chops-macro-occurrence macro)
+      scope)
+    \= TODO: Instead of using `stx-details-empty`, use a custom syntax
+    \= details value based on the interpolated string's syntax details
+    \= and the macro name's syntax details. This will mean the
+    \= interpolated string has to be a located s-expression.
+    scope (stx-details-empty/nil) body then))
 
 (def-macro def-chops-macro
   home-scope caller-scope my-stx-details args then
   
   (cast args cons macro-name fn-body
     err.\;qq[Called def-chops-macro with fewer than one argument]
-  \= TODO: Support more than just string names here.
-  /cast macro-name stx - macro-name
+  /cast
+    (stx-to-maybe-name caller-scope macro-name /fn string
+      (name-of/dexable
+        (dex-struct chops-macro-occurrence /dex-string/nil)
+      /chops-macro-occurrence string))
+    yep macro-name
     err.\;qq[
-      Called def-chops-macro with a macro name that wasn't a stx]
-  /cast macro-name istring-nil macro-name-string
-    err.\;qq[Called def-chops-macro with a non-string macro name]
+      Called def-chops-macro with a macro name that wasn't a syntactic
+      name]
   /basic-nil-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac
   /get-mode/fn mode /let mac (c mac mode)
@@ -509,7 +519,7 @@
     (c mac str.fn fn-body)
   /fn func
   /get-mode/fn mode
-  /getdef-def-val (chops-macro-getdef macro-name-string caller-scope)
+  /getdef-def-val (chops-macro-getdef macro-name caller-scope)
   /c (eval-cexpr mode func) /scope-get str.home caller-scope))
 
 
@@ -567,6 +577,8 @@
         Expected an istring that was an istring-nil or an
         istring-cons])))
 
+\= TODO: Change this so it takes a located s-expression and generates
+\= a located s-expression.
 (defn parse-chops-force-later istring then
   (parse-chops-later istring /fn parse-chops-result
   /cast parse-chops-result
@@ -591,13 +603,12 @@
 
 
 (defn compile-chops-constant-later
-  home-scope caller-scope chops err-fn constant then
+  home-scope caller-scope my-stx-details chops err-fn constant then
   
   (chops-trim-later chops /fn trimmed
   /cast trimmed istring-nil trimmed (c err-fn /nil)
   /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
-  /basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
-    then
+  /basic-pure-macro home-scope caller-scope my-stx-details then
   /fn mode caller-scope s mac
   /c mac str.chopsrun-from-string /list
   /c mac str.str /list/c s /istring-nil constant))
@@ -605,8 +616,11 @@
 \= The Chops macro call `[']` becomes a `chopsrun-from-string` of the
 \= single-character string "|". The point is to allow "|" to be part
 \= of the text instead of being treated as a divider.
-(def-chops-macro \;qq['] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
+(def-chops-macro \;qq[']
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-chops-constant-later home-scope caller-scope my-stx-details
+    chops
     (fn -
       err.\;qq[Called the | Chops macro without an empty body])
     str.\;qq[|]
@@ -615,8 +629,11 @@
 \= The Chops macro call `[:]` becomes a `chopsrun-from-string` of the
 \= empty string. The point is to act as a buffer so that the nearby
 \= whitespace on one side doesn't get trimmed.
-(def-chops-macro \;qq[:] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
+(def-chops-macro \;qq[:]
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-chops-constant-later home-scope caller-scope my-stx-details
+    chops
     (fn -
       err.\;qq[Called the : Chops macro without an empty body])
     str.\;qq[]
@@ -625,14 +642,20 @@
 \= The Chops macro call `[<]` becomes a `chopsrun-from-string` of the
 \= single-character string "[", and likewise, `[>]` corresponds to
 \= "]".
-(def-chops-macro \;qq[<] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
+(def-chops-macro \;qq[<]
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-chops-constant-later home-scope caller-scope my-stx-details
+    chops
     (fn -
       err.\;qq[Called the < Chops macro without an empty body])
     str.\;qq[\<]
     then))
-(def-chops-macro \;qq[>] home-scope caller-scope chops then
-  (compile-chops-constant-later home-scope caller-scope chops
+(def-chops-macro \;qq[>]
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-chops-constant-later home-scope caller-scope my-stx-details
+    chops
     (fn -
       err.\;qq[Called the < Chops macro without an empty body])
     str.\;qq[\>]
@@ -648,9 +671,10 @@
 \= are not passed to `run-chopsrun-tvary` like direct interpolations
 \= of `tvary` are. See if we can eliminate that difference.
 \=
-(def-chops-macro \;qq[] home-scope caller-scope chops then
-  (basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
-    then
+(def-chops-macro \;qq[]
+  home-scope caller-scope my-stx-details chops then
+  
+  (basic-pure-macro home-scope caller-scope my-stx-details then
   /fn mode caller-scope s mac
   /c mac str.chopsrun-join /list
     (c mac str.chopsrun-from-string /list
@@ -666,9 +690,8 @@
 \= are not passed to `run-chopsrun-tvary` like direct interpolations
 \= of `tvary` are. See if we can eliminate that difference.
 \=
-(def-chops-macro in home-scope caller-scope chops then
-  (basic-pure-macro home-scope caller-scope (stx-details-empty/nil)
-    then
+(def-chops-macro in home-scope caller-scope my-stx-details chops then
+  (basic-pure-macro home-scope caller-scope my-stx-details then
   /fn mode caller-scope s mac
   /c mac str.chops /list/c s chops))
 
@@ -754,6 +777,9 @@
 (defn compile-tvary-chops-later
   home-scope caller-scope my-stx-details chops then
   
+  \= TODO: Instead of passing the same `my-stx-details` to more than
+  \= one place here, try to pass a distinct one to each place, even if
+  \= it turns out we need to derive a custom syntax details value.
   (basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
   /get-mode/fn mode
@@ -784,16 +810,19 @@
     home-scope caller-scope my-stx-details chops then))
 
 (defn compile-tvary-cycler-later
-  home-scope caller-scope chops cycler-name then
+  home-scope caller-scope my-stx-details chops cycler-name then
   
+  \= TODO: Instead of passing the same `my-stx-details` to more than
+  \= one place here, try to pass a distinct one to each place, even if
+  \= it turns out we need to derive a custom syntax details value. We
+  \= may want the `chops-split-and-trim-later` operation to transform
+  \= the syntax values it deals with.
   (chops-split-and-trim-later chops /fn chops-list
-  /basic-macro home-scope caller-scope (stx-details-empty/nil) then
+  /basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
   /scope-spread-later (scope-get str.subexprs caller-scope) chops-list
     (fn scope chops then
-      (compile-tvary-chops-later home-scope scope
-        (stx-details-empty/nil)
-        chops
+      (compile-tvary-chops-later home-scope scope my-stx-details chops
       /fn cexpr
       /c then /c s /foreign/obtain-directly cexpr))
   /fn chops-list
@@ -802,10 +831,14 @@
   /c mac cycler-name /list (c mac str.uniq-name /list)
   /c mac str.list chops-list))
 
-(def-chops-macro cycle home-scope caller-scope chops then
-  (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-cycling then))
+(def-chops-macro cycle
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-tvary-cycler-later home-scope caller-scope my-stx-details
+    chops str.tvary-cycling then))
 
-(def-chops-macro proceed home-scope caller-scope chops then
-  (compile-tvary-cycler-later home-scope caller-scope chops
-    str.tvary-proceeding then))
+(def-chops-macro proceed
+  home-scope caller-scope my-stx-details chops then
+  
+  (compile-tvary-cycler-later home-scope caller-scope my-stx-details
+    chops str.tvary-proceeding then))
