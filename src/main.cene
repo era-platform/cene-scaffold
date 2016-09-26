@@ -198,7 +198,7 @@
     (fn loop-state - then
       (cast loop-state pair rev-results tvary-state
         err.\;qq[Internal error]
-      /c tvary tvary-state /fn result
+      /c (proj1 tvaryrun tvary) tvary-state /fn result
       /cast result folding tvary-state result
         err.\;qq[Internal error]
       /c then /pair (cons result rev-results) tvary-state))

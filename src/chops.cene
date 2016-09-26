@@ -572,13 +572,19 @@
 
 
 (def-struct free-chopsrun func)
-(def-struct chopsrun-ops from-string join)
+(def-struct chopsrun-ops from-string from-interpolation join)
 
 (defn chopsrun-from-string string
   (free-chopsrun/fn chopsrun-ops
-  /cast chopsrun-ops chopsrun-ops from-string join
+  /cast chopsrun-ops chopsrun-ops from-string from-interpolation join
     err.\;qq[Expected a chopsrun-ops that was a chopsrun-ops]
   /c from-string string))
+
+(defn chopsrun-from-interpolation interpolation
+  (free-chopsrun/fn chopsrun-ops
+  /cast chopsrun-ops chopsrun-ops from-string from-interpolation join
+    err.\;qq[Expected a chopsrun-ops that was a chopsrun-ops]
+  /c from-interpolation interpolation))
 
 (defn chopsrun-join a b
   (cast a free-chopsrun a
@@ -586,7 +592,7 @@
   /cast b free-chopsrun b
     err.\;qq[Expected a b that was a free-chopsrun]
   /free-chopsrun/fn chopsrun-ops
-  /cast chopsrun-ops chopsrun-ops from-string join
+  /cast chopsrun-ops chopsrun-ops from-string from-interpolation join
     err.\;qq[Expected a chopsrun-ops that was a chopsrun-ops]
   /c join (c a chopsrun-ops) (c b chopsrun-ops)))
 
@@ -602,7 +608,10 @@
         stx interpolation-stx-details interpolation
         err.\;qq[Expected a chops that was a located s-expression]
       /case interpolation foreign expr
-        (compile-expression-later scope expr /fn cexpr
+        (get-mode/fn mode /let mac (c mac mode)
+        /compile-expression-later scope
+          (c mac str.chopsrun-from-interpolation /list expr)
+        /fn cexpr
         /c then /cexpr-located interpolation-stx-details cexpr)
         (located-chops-macroexpand-later scope located-interpolation
           then)))
@@ -690,8 +699,7 @@
     then))
 
 \= The Chops macro call `[<]` becomes a `chopsrun-from-string` of the
-\= single-character string "[", and likewise, `[>]` corresponds to
-\= "]".
+\= single-character string "[". Likewise, `[>]` corresponds to "]".
 (def-chops-macro \;qq[<]
   home-scope caller-scope my-stx-details chops then
   
@@ -716,11 +724,6 @@
 \= by the contents, followed by a `chopsrun-from-string` of the
 \= single-character string "]". This means it's usually convenient to
 \= write `[ ...]` or `[[:]...]` to mean the literal text `[...]`.
-\=
-\= TODO: When this is used in a `tvary`, interpolations in its body
-\= are not passed to `run-chopsrun-tvary` like direct interpolations
-\= of `tvary` are. See if we can eliminate that difference.
-\=
 (def-chops-macro \;qq[]
   home-scope caller-scope my-stx-details chops then
   
@@ -737,11 +740,6 @@
     /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
 
 \= The Chops macro call `[in ...]` is equivalent to its contents.
-\=
-\= TODO: When this is used in a `tvary`, interpolations in its body
-\= are not passed to `run-chopsrun-tvary` like direct interpolations
-\= of `tvary` are. See if we can eliminate that difference.
-\=
 (def-chops-macro in home-scope caller-scope my-stx-details chops then
   (basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
@@ -752,12 +750,14 @@
 \= Text variations ===================================================
 
 
+(def-struct tvaryrun run)
+
 (defn tvary-proceeding name list
   (cast is-proper-list.list yep -
     err.\;qq[Expected a list that was a proper list]
   /case list nil
     err.\;qq[Expected a list that was a nonempty list]
-  /fn state then
+  /tvaryrun/fn state then
     (later
     /let old-list (case (table-get name state) yep list list list)
     /cast old-list cons chosen-tvary rest
@@ -771,14 +771,16 @@
         err.\;qq[
           In the state of tvary-proceeding, expected a list that was a
           proper list])
-    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+    /c (proj1 tvaryrun chosen-tvary)
+      (table-shadow name yep.new-list state)
+      then)))
 
 (defn tvary-cycling name list
   (cast is-proper-list.list yep -
     err.\;qq[Expected a list that was a proper list]
   /case list nil
     err.\;qq[Expected a list that was a nonempty list]
-  /fn state then
+  /tvaryrun/fn state then
     (later
     /let old-list (case (table-get name state) yep list list list)
     /cast old-list cons chosen-tvary rest
@@ -792,19 +794,28 @@
         err.\;qq[
           In the state of tvary-cycling, expected a list that was a
           proper list])
-    /c chosen-tvary (table-shadow name yep.new-list state) then)))
+    /c (proj1 tvaryrun chosen-tvary)
+      (table-shadow name yep.new-list state)
+      then)))
 
-(defn tvary-then tvary next state then
-  (c tvary state /fn result
-  /cast result folding state result
-    err.\;qq[Expected a tvary result that was a folding]
-  /c next result state then))
+(defn tvary-then tvary next
+  (tvaryrun/fn state then
+    (cast tvary tvaryrun tvary
+      err.\;qq[Expected a tvary that was a tvaryrun]
+    /c tvary state /fn result
+    /cast result folding state result
+      err.\;qq[Expected a tvary result that was a folding]
+    /cast (c next result) tvaryrun tvary
+      err.\;qq[Expected a next result that was a tvaryrun]
+    /c tvary state then)))
 
-(defn tvary-done result state then
-  (c-later then /folding state result))
+(defn tvary-done result
+  (tvaryrun/fn state then
+    (c-later then /folding state result)))
 
-(defn tvary-later-done result-later state then
-  (c result-later /fn result /c then /folding state result))
+(defn tvary-later-done result-later
+  (tvaryrun/fn state then
+    (c result-later /fn result /c then /folding state result)))
 
 
 (defn run-chopsrun-tvary chopsrun
@@ -815,30 +826,27 @@
     \= from-string
     (tvary-done)
     
+    \= from-interpolation
+    (fn interpolation interpolation)
+    
     \= join
-    (fn a b state then
-      (c a state /fn a-result
-      /cast a-result folding state a-result
-        err.\;qq[Expected an a-result that was a folding]
-      /c b state /fn b-result
-      /cast b-result folding state b-result
-        err.\;qq[Expected a b-result that was a folding]
-      /string-append-later a-result b-result /fn result
-      /c then /folding state result))))
+    (fn a b
+      (tvaryrun/fn state then
+        (cast a tvaryrun a
+          err.\;qq[Expected an a that was a tvaryrun]
+        /c a state /fn a-result
+        /cast a-result folding state a-result
+          err.\;qq[Expected an a-result that was a folding]
+        /cast b tvaryrun b
+          err.\;qq[Expected a b that was a tvaryrun]
+        /c b state /fn b-result
+        /cast b-result folding state b-result
+          err.\;qq[Expected a b-result that was a folding]
+        /string-append-later a-result b-result /fn result
+        /c then /folding state result)))))
 
 (defn compile-tvary-chops-to-expr-later s mac scope chops then
-  (get-mode/fn mode
-  /compile-chops-to-expr-later s mac scope
-    (to-located/istring-map from-located.chops /fn interpolation
-      \= We do special processing of interpolations that are at the
-      \= shallowest level, but we leave the others alone. The others
-      \= are inside Chops macro calls that may have their own
-      \= treatments of interpolations.
-      (case interpolation foreign expr
-        (let mac (c mac mode)
-        /foreign/c mac str.chopsrun-from-nonfree /list expr)
-        interpolation))
-  /fn chops
+  (compile-chops-to-expr-later s mac scope chops /fn chops
   /get-mode/fn mode /c then /let mac (c mac mode)
   /c mac str.run-chopsrun-tvary /list chops))
 
@@ -858,7 +866,7 @@
   (chops-split-and-trim-later from-located.chops /fn chops-list
   /basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
-  /scope-spread-later (scope-get str.subexprs caller-scope) chops-list
+  /scope-spread-later caller-scope chops-list
     (fn scope chops then
       (compile-tvary-chops-to-expr-later s mac scope to-located.chops
         then))
