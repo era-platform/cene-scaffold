@@ -208,6 +208,49 @@
 \= The Chops markup macro system =====================================
 
 
+\= TODO: Avoid using `to-located` and `from-located` whenever
+\= possible. They almost always indicate sloppiness in the tracking of
+\= source locations.
+
+(defn to-located expr
+  (stx (stx-details-empty/nil) /pass-to expr /fix/fn process-rest expr
+    (case expr
+      
+      foreign - expr
+      
+      nil expr
+      
+      cons first rest (cons to-located.first /c process-rest rest)
+      
+      istring-nil - expr
+      
+      istring-cons prefix interpolation rest
+      (istring-cons prefix to-located.interpolation
+      /c process-rest rest)
+      
+      err.\;qq[Expected an expr that was an s-expression])))
+
+(defn from-located expr
+  (cast expr stx - expr
+    err.\;qq[Expected an expr that was a stx]
+  /pass-to expr /fix/fn process-rest expr
+    (case expr
+      
+      foreign - expr
+      
+      nil expr
+      
+      cons first rest (cons from-located.first /c process-rest rest)
+      
+      istring-nil - expr
+      
+      istring-cons prefix interpolation rest
+      (istring-cons prefix from-located.interpolation
+      /c process-rest rest)
+      
+      err.\;qq[Expected an expr that was an s-expression])))
+
+
 (def-struct parse-chops-result closed-stack chops opened-stack)
 
 \= This parses an istring to match its `[` and `]` brackets. It
@@ -496,7 +539,7 @@
     \= details value based on the interpolated string's syntax details
     \= and the macro name's syntax details. This will mean the
     \= interpolated string has to be a located s-expression.
-    scope (stx-details-empty/nil) body then))
+    scope (stx-details-empty/nil) to-located.body then))
 
 (def-macro def-chops-macro
   home-scope caller-scope my-stx-details args then
@@ -546,7 +589,7 @@
   (free-chopsrun/fn - nonfree))
 
 (defn compile-chops-to-expr-later s mac scope chops then
-  (istring-scope-spread-later scope chops
+  (istring-scope-spread-later scope from-located.chops
     (fn scope interpolation then
       (case interpolation foreign expr
         (compile-expression-later scope expr then)
@@ -604,13 +647,13 @@
     err.\;qq[Expected an istring that was a stx]
   /parse-chops-force-later istring /fn chops
   /compile-chops-later
-    home-scope caller-scope my-stx-details chops then))
+    home-scope caller-scope my-stx-details to-located.chops then))
 
 
 (defn compile-chops-constant-later
   home-scope caller-scope my-stx-details chops err-fn constant then
   
-  (chops-trim-later chops /fn trimmed
+  (chops-trim-later from-located.chops /fn trimmed
   /cast trimmed istring-nil trimmed (c err-fn /nil)
   /cast (string-metacompare trimmed str.\;qq[]) nil (c err-fn /nil)
   /basic-pure-macro home-scope caller-scope my-stx-details then
@@ -791,7 +834,7 @@
   /fn caller-scope s mac then
   /get-mode/fn mode
   /compile-chops-later home-scope caller-scope my-stx-details
-    (istring-map chops /fn interpolation
+    (to-located/istring-map chops /fn interpolation
       \= We do special processing of interpolations that are at the
       \= shallowest level, but we leave the others alone. The others
       \= are inside Chops macro calls that may have their own
@@ -824,7 +867,7 @@
   \= it turns out we need to derive a custom syntax details value. We
   \= may want the `chops-split-and-trim-later` operation to transform
   \= the syntax values it deals with.
-  (chops-split-and-trim-later chops /fn chops-list
+  (chops-split-and-trim-later from-located.chops /fn chops-list
   /basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
   /scope-spread-later (scope-get str.subexprs caller-scope) chops-list
