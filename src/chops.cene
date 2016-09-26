@@ -37,6 +37,11 @@
   /fn mode caller-scope s mac
   /c mac str.name-of /list/c mac str.uniq-dexable /list))
 
+(defn augment-stx-details stx-details orig
+  (cast orig stx orig-stx-details orig-expr
+    err.\;qq[Expected an orig that was a stx]
+  /stx (stx-details-join stx-details orig-stx-details) orig-expr))
+
 (defn is-proper-list list
   (case list
     nil (yep/nil)
@@ -596,19 +601,14 @@
       (cast located-interpolation
         stx interpolation-stx-details interpolation
         err.\;qq[Expected a chops that was a located s-expression]
-      /case located-interpolation foreign expr
+      /case interpolation foreign expr
         (compile-expression-later scope expr /fn cexpr
-        /cexpr-located interpolation-stx-details cexpr)
+        /c then /cexpr-located interpolation-stx-details cexpr)
         (located-chops-macroexpand-later scope located-interpolation
           then)))
   /fn chops
   /get-mode/fn mode /c then /let mac (c mac mode)
-  /let augment
-    (fn stx-details orig
-      (cast orig stx orig-stx-details orig-expr
-        err.\;qq[Expected an orig that was a stx]
-      /stx (stx-details-join stx-details orig-stx-details) orig-expr))
-  /c augment chops-stx-details
+  /augment-stx-details chops-stx-details
   /pass-to chops /fix/fn loop chops
     (case chops
       
@@ -629,7 +629,9 @@
         istring-cons])))
 
 (defn parse-located-chops-force-later istring then
-  (parse-chops-later from-located.istring /fn parse-chops-result
+  (cast istring stx stx-details istring
+    err.\;qq[Expected an istring that was a stx]
+  /parse-chops-later istring /fn parse-chops-result
   /cast parse-chops-result
     parse-chops-result closed-stack chops opened-stack
     err.\;qq[Internal error]
@@ -637,7 +639,7 @@
     err.\;qq[Unmatched \>]
   /cast opened-stack nil
     err.\;qq[Unmatched \<]
-  /c then /to-located chops))
+  /c then /augment-stx-details stx-details /to-located chops))
 
 (def-macro chops home-scope caller-scope my-stx-details args then
   (cast args cons istring args
