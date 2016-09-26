@@ -545,13 +545,8 @@
 (defn chopsrun-from-nonfree nonfree
   (free-chopsrun/fn - nonfree))
 
-(defn compile-chops-later
-  home-scope caller-scope my-stx-details chops then
-  
-  (basic-macro home-scope caller-scope my-stx-details then
-  /fn caller-scope s mac then
-  /istring-scope-spread-later (scope-get str.subexprs caller-scope)
-    chops
+(defn compile-chops-to-expr-later s mac scope chops then
+  (istring-scope-spread-later scope chops
     (fn scope interpolation then
       (case interpolation foreign expr
         (compile-expression-later scope expr then)
@@ -576,6 +571,16 @@
       err.\;qq[
         Expected an istring that was an istring-nil or an
         istring-cons])))
+
+(defn compile-chops-later
+  home-scope caller-scope my-stx-details chops then
+  
+  (basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /compile-chops-to-expr-later s mac
+    (scope-get str.subexprs caller-scope)
+    chops
+    then))
 
 \= TODO: Change this so it takes a located s-expression and generates
 \= a located s-expression.
@@ -674,13 +679,15 @@
 (def-chops-macro \;qq[]
   home-scope caller-scope my-stx-details chops then
   
-  (basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn mode caller-scope s mac
+  (basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /compile-chops-to-expr-later s mac caller-scope chops /fn chops
+  /get-mode/fn mode /c then /let mac (c mac mode)
   /c mac str.chopsrun-join /list
     (c mac str.chopsrun-from-string /list
     /c mac str.str /list/c s /istring-nil str.\;qq[\<])
   /c mac str.chopsrun-join /list
-    (c mac str.chops /list/c s chops)
+    chops
     (c mac str.chopsrun-from-string /list
     /c mac str.str /list/c s /istring-nil str.\;qq[\>])))
 
@@ -691,9 +698,9 @@
 \= of `tvary` are. See if we can eliminate that difference.
 \=
 (def-chops-macro in home-scope caller-scope my-stx-details chops then
-  (basic-pure-macro home-scope caller-scope my-stx-details then
-  /fn mode caller-scope s mac
-  /c mac str.chops /list/c s chops))
+  (basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /compile-chops-to-expr-later s mac caller-scope chops then))
 
 
 
