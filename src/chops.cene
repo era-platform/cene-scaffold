@@ -615,20 +615,8 @@
         Expected an istring that was an istring-nil or an
         istring-cons])))
 
-(defn compile-chops-later
-  home-scope caller-scope my-stx-details chops then
-  
-  (basic-macro home-scope caller-scope my-stx-details then
-  /fn caller-scope s mac then
-  /compile-chops-to-expr-later s mac
-    (scope-get str.subexprs caller-scope)
-    chops
-    then))
-
-\= TODO: Change this so it takes a located s-expression and generates
-\= a located s-expression.
-(defn parse-chops-force-later istring then
-  (parse-chops-later istring /fn parse-chops-result
+(defn parse-located-chops-force-later istring then
+  (parse-chops-later from-located.istring /fn parse-chops-result
   /cast parse-chops-result
     parse-chops-result closed-stack chops opened-stack
     err.\;qq[Internal error]
@@ -636,7 +624,7 @@
     err.\;qq[Unmatched \>]
   /cast opened-stack nil
     err.\;qq[Unmatched \<]
-  /c then chops))
+  /c then /to-located chops))
 
 (def-macro chops home-scope caller-scope my-stx-details args then
   (cast args cons istring args
@@ -645,9 +633,10 @@
     err.\;qq[Called chops with more than one argument]
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
-  /parse-chops-force-later istring /fn chops
-  /compile-chops-later
-    home-scope caller-scope my-stx-details to-located.chops then))
+  /parse-located-chops-force-later to-located.istring /fn chops
+  /basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /compile-chops-to-expr-later s mac caller-scope chops then))
 
 
 (defn compile-chops-constant-later
@@ -824,17 +813,10 @@
       /string-append-later a-result b-result /fn result
       /c then /folding state result))))
 
-(defn compile-tvary-chops-later
-  home-scope caller-scope my-stx-details chops then
-  
-  \= TODO: Instead of passing the same `my-stx-details` to more than
-  \= one place here, try to pass a distinct one to each place, even if
-  \= it turns out we need to derive a custom syntax details value.
-  (basic-macro home-scope caller-scope my-stx-details then
-  /fn caller-scope s mac then
-  /get-mode/fn mode
-  /compile-chops-later home-scope caller-scope my-stx-details
-    (to-located/istring-map chops /fn interpolation
+(defn compile-tvary-chops-to-expr-later s mac scope chops then
+  (get-mode/fn mode
+  /compile-chops-to-expr-later s mac scope
+    (to-located/istring-map from-located.chops /fn interpolation
       \= We do special processing of interpolations that are at the
       \= shallowest level, but we leave the others alone. The others
       \= are inside Chops macro calls that may have their own
@@ -843,10 +825,9 @@
         (let mac (c mac mode)
         /foreign/c mac str.chopsrun-from-nonfree /list expr)
         interpolation))
-  /fn cexpr
+  /fn chops
   /get-mode/fn mode /c then /let mac (c mac mode)
-  /c mac str.run-chopsrun-tvary /list
-  /c s /foreign/obtain-directly cexpr))
+  /c mac str.run-chopsrun-tvary /list chops))
 
 (def-macro tvary home-scope caller-scope my-stx-details args then
   (cast args cons istring args
@@ -855,26 +836,21 @@
     err.\;qq[Called tvary with more than one argument]
   /cast istring stx - istring
     err.\;qq[Expected an istring that was a stx]
-  /parse-chops-force-later istring /fn chops
-  /compile-tvary-chops-later
-    home-scope caller-scope my-stx-details chops then))
+  /parse-located-chops-force-later to-located.istring /fn chops
+  /basic-macro home-scope caller-scope my-stx-details then
+  /fn caller-scope s mac then
+  /compile-tvary-chops-to-expr-later s mac caller-scope chops then))
 
 (defn compile-tvary-cycler-later
   home-scope caller-scope my-stx-details chops cycler-name then
   
-  \= TODO: Instead of passing the same `my-stx-details` to more than
-  \= one place here, try to pass a distinct one to each place, even if
-  \= it turns out we need to derive a custom syntax details value. We
-  \= may want the `chops-split-and-trim-later` operation to transform
-  \= the syntax values it deals with.
   (chops-split-and-trim-later from-located.chops /fn chops-list
   /basic-macro home-scope caller-scope my-stx-details then
   /fn caller-scope s mac then
   /scope-spread-later (scope-get str.subexprs caller-scope) chops-list
     (fn scope chops then
-      (compile-tvary-chops-later home-scope scope my-stx-details chops
-      /fn cexpr
-      /c then /c s /foreign/obtain-directly cexpr))
+      (compile-tvary-chops-to-expr-later s mac scope to-located.chops
+        then))
   /fn chops-list
   /get-mode/fn mode /c then /let mac (c mac mode)
   /c mac str.chopsrun-from-nonfree /list
