@@ -2,15 +2,17 @@
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
 (defn js-client-main client
-/compile-give-unwrapped-js-effects str.client client str.\;qq;yp/
+/run-give-unwrapped-js-effects client js.\;qq;yp/
+    return function ( client ) {
     
     console.log( "Hello, client!" );
     
     return client.done( client.wrap( null ) );
-)
+};)
 
 (defn js-server-main client
-/compile-give-unwrapped-js-effects str.client client str.\;qq;yp/
+/run-give-unwrapped-js-effects client js.\;qq;yp/
+    return function ( client ) {
     
     /*
     var require = process.mainModule.require;
@@ -34,7 +36,7 @@
     } );
     
     return client.done( client.wrap( null ) );
-)
+};)
 
 (def-macro go home-scope caller-scope my-stx-details args then
   (basic-nil-macro home-scope caller-scope my-stx-details then

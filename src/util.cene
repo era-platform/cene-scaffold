@@ -74,8 +74,11 @@
     /cexpr-construct main-tag /list)
     top-level-vars))
 
-(defn compile-give-unwrapped-js-effects param js-val body
-  (then-js-effects
-    (compile-function-js-effects (cons param /nil) body)
-  /fn body
+(defn run-give-unwrapped-js-effects js-val body-effects
+  (then-js-effects body-effects /fn body
   /give-unwrapped-js-effects js-val body))
+
+\= TODO: See if we need this anymore.
+(defn compile-give-unwrapped-js-effects param js-val body
+  (run-give-unwrapped-js-effects js-val
+  /compile-function-js-effects (cons param /nil) body))
