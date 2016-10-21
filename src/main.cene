@@ -1,14 +1,98 @@
 \= main.cene (part of Cene Scaffold)
 \= Copyright 2016 Ross Angle. Released under the MIT License.
 
+(defn call-js-effects-1 client arg body
+  (then-js-effects body /fn body
+  /run-give-unwrapped-js-effects arg
+  /run-give-unwrapped-js-effects body
+  /run-give-unwrapped-js-effects client
+    js.\;qq;yp[return function ( client ) {
+        return client.done( client.wrap( function ( body ) {
+            return client.done( client.wrap( function ( arg ) {
+                return body( client, arg );
+            } ) );
+        } ) );
+    };]))
+
+(defn call-js-effects-2 client arg-1 arg-2 body
+  (then-js-effects body /fn body
+  /run-give-unwrapped-js-effects arg-2
+  /run-give-unwrapped-js-effects body
+  /call-js-effects-1 client arg-1
+    js.\;qq;yp[return function ( client, arg1 ) {
+        return client.done( client.wrap( function ( body ) {
+            return client.done( client.wrap( function ( arg2 ) {
+                return body( client, arg1, arg2 );
+            } ) );
+        } ) );
+    };]))
+
+(def-struct js-builder client-to-js-effect)
+
+(defn run-js-builder client js-builder
+  (cast js-builder js-builder client-to-js-effect
+    err.\;qq[Expected a js-builder that was a js-builder]
+  /c client-to-js-effect client))
+
+(defn then-js-builder js-builder built-to-js-builder
+  (js-builder/fn client
+  /then-js-effects (run-js-builder client js-builder) /fn built
+  /run-js-builder client /c built-to-js-builder built))
+
+(defn done-js-builder result
+  (js-builder/fn client
+  /done-js-effects result))
+
+(defn dom-text text
+  (js-builder/fn client
+  /call-js-effects-1 client string-to-javascript-utf-16.text
+    js.\;qq;yp[return function ( client, text ) {
+        var document = client.getTopLevelVar( "document" );
+        return client.done(
+            client.wrap( document.createTextNode( text ) ) );
+    };]))
+
+(defn dom-tag name
+  (js-builder/fn client
+  /call-js-effects-1 client string-to-javascript-utf-16.name
+    js.\;qq;yp[return function ( client, name ) {
+        var document = client.getTopLevelVar( "document" );
+        return client.done(
+            client.wrap( document.createElement( name ) ) );
+    };]))
+
+(defn dom-append-child parent child
+  (js-builder/fn client
+  /call-js-effects-2 client parent child
+    js.\;qq;yp[return function ( client, parent, child ) {
+        parent.appendChild( child );
+        return client.done( client.wrap( null ) );
+    };]))
+
+(defn dom-transform dom-builder list-of-transformers
+  (case list-of-transformers cons first rest
+    (then-js-builder dom-builder /fn dom
+    /then-js-builder (c first dom) /fn -
+    /dom-transform done-js-builder.dom rest)
+    dom-builder))
+
+(defn domt-child child-builder
+  (fn parent
+    (then-js-builder child-builder /fn child
+    /dom-append-child parent child)))
+
 (defn js-client-main client
-/run-give-unwrapped-js-effects client js.\;qq;yp/
-    return function ( client ) {
-    
-    console.log( "Hello, client!" );
-    
-    return client.done( client.wrap( null ) );
-};)
+  (then-js-effects
+    (run-js-builder client
+      (dom-transform (dom-tag str.p) /list
+        (domt-child/dom-text str.\;qq[Hello, client!])))
+  /fn dom
+  /call-js-effects-1 client dom
+    js.\;qq;yp[return function ( client, dom ) {
+        var document = client.getTopLevelVar( "document" );
+        document.body.appendChild( dom );
+        return client.done( client.wrap( null ) );
+    };]))
 
 (defn js-server-main client
 /run-give-unwrapped-js-effects client js.\;qq;yp/
@@ -59,7 +143,7 @@
         (output-path-get cli-output-directory.mode str.\;qq[static])
         str.\;qq[client.js])
       str.js-client-main
-    /list)
+    /list str.document)
   /join-effects
     (make-quine mode home-scope
       (output-path-get cli-output-directory.mode str.\;qq[server.js])
