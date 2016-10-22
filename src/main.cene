@@ -27,6 +27,19 @@
         } ) );
     };]))
 
+(defn call-js-effects-3 client arg-1 arg-2 arg-3 body
+  (then-js-effects body /fn body
+  /run-give-unwrapped-js-effects arg-3
+  /run-give-unwrapped-js-effects body
+  /call-js-effects-2 client arg-1 arg-2
+    js.\;qq;yp[return function ( client, arg1, arg2 ) {
+        return client.done( client.wrap( function ( body ) {
+            return client.done( client.wrap( function ( arg3 ) {
+                return body( client, arg1, arg2, arg3 );
+            } ) );
+        } ) );
+    };]))
+
 (def-struct js-builder client-to-js-effect)
 
 (defn run-js-builder client js-builder
@@ -61,12 +74,14 @@
             client.wrap( document.createElement( name ) ) );
     };]))
 
-(defn dom-append-child parent child
+(defn wrap-js-builder cene-val
   (js-builder/fn client
-  /call-js-effects-2 client parent child
-    js.\;qq;yp[return function ( client, parent, child ) {
-        parent.appendChild( child );
-        return client.done( client.wrap( null ) );
+  /run-give-js-effects cene-val
+  /run-give-unwrapped-js-effects client
+    js.\;qq;yp[return function ( client ) {
+        return client.done( client.wrap( function ( wrappedVal ) {
+            return client.done( client.wrap( wrappedVal ) );
+        } ) );
     };]))
 
 (defn dom-transform dom-builder list-of-transformers
@@ -76,17 +91,64 @@
     /dom-transform done-js-builder.dom rest)
     dom-builder))
 
+(defn dom-append-child parent child
+  (js-builder/fn client
+  /call-js-effects-2 client parent child
+    js.\;qq;yp[return function ( client, parent, child ) {
+        parent.appendChild( child );
+        return client.done( client.wrap( null ) );
+    };]))
+
 (defn domt-child child-builder
   (fn parent
     (then-js-builder child-builder /fn child
     /dom-append-child parent child)))
 
+(defn dom-on dom event-name handler
+  (then-js-builder wrap-js-builder.handler /fn handler
+  /js-builder/fn client
+  /call-js-effects-3 client
+    dom string-to-javascript-utf-16.event-name handler
+    js.\;qq;yp[return function (
+        client, dom, eventName, ceneHandler ) {
+        
+        function jsHandler( event ) {
+            client.defer( function () {
+                return client.giveSync( client.wrap( event ),
+                    ceneHandler );
+            } );
+        }
+        if ( dom.addEventListener )
+            dom.addEventListener( eventName, jsHandler, !"capture" );
+        else  // IE
+            dom.attachEvent( "on" + eventName, jsHandler );
+        return client.done( client.wrap( null ) );
+    };]))
+
+(defn domt-on event-name handler
+  (fn dom
+    (dom-on dom event-name handler)))
+
 (defn js-client-main client
-  (then-js-effects
-    (run-js-builder client
-      (dom-transform (dom-tag str.p) /list
-        (domt-child/dom-text str.\;qq[Hello, client!])))
+  (run-js-builder client
+  /then-js-builder (dom-tag str.div) /fn display-div
+  /then-js-builder
+    (dom-transform (dom-tag str.div) /list
+      (domt-child/dom-transform (dom-tag str.p) /list
+        (domt-child/dom-text str.\;qq[Hello, client!]))
+      (domt-child/dom-transform (dom-tag str.button) /list
+        (domt-child/dom-text
+          str.\;qq[Append another paragraph below.])
+        (domt-on str.click /fn event
+          (run-js-builder client
+          /then-js-builder
+            (dom-transform (dom-tag str.p) /list
+              (domt-child/dom-text str.\;qq[Appended!]))
+          /fn paragraph
+          /dom-append-child display-div paragraph)))
+      (domt-child/done-js-builder display-div))
   /fn dom
+  /js-builder/fn client
   /call-js-effects-1 client dom
     js.\;qq;yp[return function ( client, dom ) {
         var document = client.getTopLevelVar( "document" );

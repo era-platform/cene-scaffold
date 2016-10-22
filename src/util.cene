@@ -74,6 +74,10 @@
     /cexpr-construct main-tag /list)
     top-level-vars))
 
+(defn run-give-js-effects val body-effects
+  (then-js-effects body-effects /fn body
+  /give-js-effects val body))
+
 (defn run-give-unwrapped-js-effects js-val body-effects
   (then-js-effects body-effects /fn body
   /give-unwrapped-js-effects js-val body))
