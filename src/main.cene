@@ -56,6 +56,39 @@
   (js-builder/fn client
   /done-js-effects result))
 
+(defn wrap-js-builder cene-val
+  (js-builder/fn client
+  /run-give-js-effects cene-val
+  /run-give-unwrapped-js-effects client
+    js.\;qq;yp[return function ( client ) {
+        return client.done( client.wrap( function ( wrappedVal ) {
+            return client.done( client.wrap( wrappedVal ) );
+        } ) );
+    };]))
+
+(defn js-box-new val
+  (then-js-builder wrap-js-builder.val /fn val
+  /js-builder/fn client
+  /call-js-effects-1 client val
+    js.\;qq;yp[return function ( client, val ) {
+        return client.done( client.wrap( { val: val } ) );
+    };]))
+
+(defn js-box-get box
+  (js-builder/fn client
+  /call-js-effects-1 client box
+    js.\;qq;yp[return function ( client, box ) {
+        return client.done( client.wrap( box.val ) );
+    };]))
+
+(defn js-box-put box val
+  (js-builder/fn client
+  /call-js-effects-2 client box val
+    js.\;qq;yp[return function ( client, box, val ) {
+        box.val = val;
+        return client.done( client.wrap( null ) );
+    };]))
+
 (defn dom-text text
   (js-builder/fn client
   /call-js-effects-1 client string-to-javascript-utf-16.text
@@ -72,16 +105,6 @@
         var document = client.getTopLevelVar( "document" );
         return client.done(
             client.wrap( document.createElement( name ) ) );
-    };]))
-
-(defn wrap-js-builder cene-val
-  (js-builder/fn client
-  /run-give-js-effects cene-val
-  /run-give-unwrapped-js-effects client
-    js.\;qq;yp[return function ( client ) {
-        return client.done( client.wrap( function ( wrappedVal ) {
-            return client.done( client.wrap( wrappedVal ) );
-        } ) );
     };]))
 
 (defn dom-transform dom-builder list-of-transformers
@@ -130,7 +153,13 @@
     (dom-on dom event-name handler)))
 
 (defn js-client-main client
-  (run-js-builder client
+  (let tvary
+    tvary.\;qq[
+      The clock struck [cycle twelve|three|six|nine], and the mouse
+      [proceed ran up the clock|ran down the clock|was not impressed].
+    ]
+  /run-js-builder client
+  /then-js-builder (js-box-new/table-empty/nil) /fn tvary-state-box
   /then-js-builder (dom-tag str.div) /fn display-div
   /then-js-builder
     (dom-transform (dom-tag str.div) /list
@@ -141,9 +170,25 @@
           str.\;qq[Append another paragraph below.])
         (domt-on str.click /fn event
           (run-js-builder client
+          /then-js-builder js-box-get.tvary-state-box /fn tvary-state
+          
+          /let result str.\;qq[Appended!]
+          
+          \= TODO: In Cene, implement a primitive like
+          \= `later-js-builder` here. It will entail creating a mode
+          \= and executing an "effects" computation in the middle of a
+          \= "js-effects" computation.
+\=          /later-js-builder/fn then
+\=          /c (proj1 tvaryrun tvary) tvary-state /fn result
+\=          /cast result folding tvary-state result
+\=            err.\;qq[Internal error]
+\=          /c then
+          
+          /then-js-builder (js-box-put tvary-state-box tvary-state)
+          /fn -
           /then-js-builder
             (dom-transform (dom-tag str.p) /list
-              (domt-child/dom-text str.\;qq[Appended!]))
+              (domt-child/dom-text result))
           /fn paragraph
           /dom-append-child display-div paragraph)))
       (domt-child/done-js-builder display-div))
