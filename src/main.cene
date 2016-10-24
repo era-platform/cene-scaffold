@@ -78,11 +78,12 @@
   (js-builder/fn client
   /call-js-effects-1 client box
     js.\;qq;yp[return function ( client, box ) {
-        return client.done( client.wrap( box.val ) );
+        return client.done( box.val );
     };]))
 
 (defn js-box-put box val
-  (js-builder/fn client
+  (then-js-builder wrap-js-builder.val /fn val
+  /js-builder/fn client
   /call-js-effects-2 client box val
     js.\;qq;yp[return function ( client, box, val ) {
         box.val = val;
@@ -172,17 +173,13 @@
           (run-js-builder client
           /then-js-builder js-box-get.tvary-state-box /fn tvary-state
           
-          /let result str.\;qq[Appended!]
-          
-          \= TODO: In Cene, implement a primitive like
-          \= `later-js-builder` here. It will entail creating a mode
-          \= and executing an "effects" computation in the middle of a
-          \= "js-effects" computation.
-\=          /later-js-builder/fn then
-\=          /c (proj1 tvaryrun tvary) tvary-state /fn result
-\=          /cast result folding tvary-state result
-\=            err.\;qq[Internal error]
-\=          /c then
+          /js-builder/fn client
+          /later-js-effects/fn js-effects-definer
+          /c (proj1 tvaryrun tvary) tvary-state /fn result
+          /cast result folding tvary-state result
+            err.\;qq[Internal error]
+          /definer-define js-effects-definer (dex-give-up/nil)
+          /run-js-builder client
           
           /then-js-builder (js-box-put tvary-state-box tvary-state)
           /fn -
