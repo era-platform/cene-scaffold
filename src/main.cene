@@ -87,7 +87,9 @@
       hello-place)
   /join-effects
     (copy-paths mode
-      (input-path-get cli-input-directory.mode str.raw)
+      (input-path-get
+        (input-path-get cli-input-directory.mode str.src)
+        str.raw)
       cli-output-directory.mode)
   /join-effects
     (make-quine mode home-scope
