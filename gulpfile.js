@@ -24,7 +24,7 @@ gulp.task( "build", function () {
     ) ).then( function ( ignored ) {
         return when.promise( function ( resolve, reject ) {
             spawn( "npm",
-                "run cene -- build.cene -i build/ -o fin/".split(
+                "run cene -- build.cene -i build/ -o fin/ -m".split(
                     " " ),
             {
                 stdio: [ "ignore", "inherit", "inherit" ]
