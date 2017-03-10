@@ -25,7 +25,7 @@ This will create a fin/ directory containing the transformation result, as well 
 ```
 $ cd fin/
 $ npm install
-$ npm start
+$ node server.js
 ```
 
 Then you can visit the site served at localhost:8080. The page displays a "Hello, client!" message by constructing some DOM nodes with the JS FFI.

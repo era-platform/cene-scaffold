@@ -6,8 +6,5 @@
   },
   "dependencies": {
     "express": "*"
-  },
-  "scripts": {
-    "start": "node server.js"
   }
 }
