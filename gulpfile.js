@@ -4,6 +4,10 @@ var when = require( "when" );
 var spawn = require( "cross-spawn" );
 var del = require( "del" );
 
+var ceneLibs = [
+    "cene"
+];
+
 gulp.task( "clean", function () {
     return del( [ "build", "fin" ] );
 } );
@@ -12,12 +16,9 @@ gulp.task( "build", function () {
     return when.all( [
         gulp.src( "src/**/*" ).pipe( gulp.dest( "build/src" ) )
     ].concat(
-        [
-            // TODO: Move chops.cene into its own npm module, and add
-            // the name of that module to this array.
-        ].map( function ( lib ) {
+        ceneLibs.map( function ( lib ) {
             return gulp.src(
-                "node_modules/" + lib + "/cenelib/**/*"
+                "node_modules/" + lib + "/lib-cene/**/*"
             ).pipe( gulp.dest( "build/lib/" + lib ) );
         } )
     ) ).then( function ( ignored ) {

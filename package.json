@@ -13,7 +13,7 @@
     "npm": ">= 1.0.0"
   },
   "dependencies": {
-    "cene": ">= 0.0.32",
+    "cene": ">= 0.0.36",
     "cross-spawn": "^5.1.0",
     "del": "^2.2.2",
     "gulp": "^3.9.1",
@@ -21,6 +21,6 @@
   },
   "scripts": {
     "cene": "cene",
-    "build": "cene build.cene --in src --out fin"
+    "build": "gulp build"
   }
 }
