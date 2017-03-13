@@ -21,6 +21,7 @@
   },
   "scripts": {
     "cene": "cene",
+    "clean": "gulp clean",
     "build": "gulp build"
   }
 }

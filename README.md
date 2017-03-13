@@ -16,8 +16,7 @@ To obtain build dependencies and run the directory transformation:
 
 ```
 $ npm install
-$ npm install -g gulp
-$ gulp build
+$ npm run build
 ```
 
 This will create a fin/ directory containing the transformation result, as well as an intermediate build/ directory. The fin/ directory itself has dependencies. To obtain server dependencies and start the Node.js server:
