@@ -1,7 +1,8 @@
 \= build.cene (part of Cene Scaffold)
 \= Copyright 2016, 2017 Ross Angle. Released under the MIT License.
 
+(import lib cene \;qq[build-util.cene])
 (import lib cene \;qq[chops.cene])
 (import lib cene \;qq[js.cene])
-(import src \;qq[util.cene])
+(import lib cene \;qq[string.cene])
 (import src \;qq[main.cene])
