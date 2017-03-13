@@ -92,14 +92,14 @@
         str.raw)
       cli-output-directory.mode)
   /join-effects
-    (make-quine mode home-scope
+    (make-program mode home-scope
       (output-path-get
         (output-path-get cli-output-directory.mode str.\;qq[static])
         str.\;qq[client.js])
       str.js-client-main
     /list str.document)
   /join-effects
-    (make-quine mode home-scope
+    (make-program mode home-scope
       (output-path-get cli-output-directory.mode str.\;qq[server.js])
       str.js-server-main
     /list str.require str.__dirname)

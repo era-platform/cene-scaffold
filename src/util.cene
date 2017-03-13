@@ -55,11 +55,11 @@
     
   /no-effects/nil))
 
-(defn make-quine mode scope out string-name top-level-vars
+(defn make-program mode scope out string-name top-level-vars
   (cast scope scope - def-ns qualify
     err.\;qq[Expected a scope value that was a scope]
   /output-path-blob-utf-8 out
-  /picky-javascript-quine mode
+  /picky-javascript-program mode
     (cast
       (procure-constructor-glossary-getdef def-ns
       /c qualify
