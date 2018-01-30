@@ -14,8 +14,8 @@
   },
   "dependencies": {
     "cene": "0.0.42",
-    "cross-spawn": "^5.1.0",
-    "del": "^2.2.2",
+    "cross-spawn": "^6.0.3",
+    "del": "^3.0.0",
     "gulp": "^3.9.1",
     "when": "^3.7.8"
   },
