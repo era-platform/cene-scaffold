@@ -9,7 +9,7 @@
     "url": "https://github.com/era-platform"
   },
   "dependencies": {
-    "cene": "0.0.43",
+    "cene": "0.0.44",
     "cross-spawn": "^7.0.3",
     "del": "^6.0.0",
     "gulp": "^4.0.2",
