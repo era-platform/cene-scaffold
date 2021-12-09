@@ -1,5 +1,7 @@
 # Cene Scaffold
 
+[![CI](https://github.com/era-platform/cene-scaffold/actions/workflows/ci.yml/badge.svg)](https://github.com/era-platform/cene-scaffold/actions/workflows/ci.yml)
+
 This project is an exercise in using [the Cene programming language](https://github.com/era-platform/cene). It implements a "hello world" level of functionality covering a few different ways of using Cene. Cene controls the build logic, the Web server logic, and the Web client logic.
 
 In general, there are two ways to run Cene programs: A Cene program can transform an input directory into an output directory, and in the process it can create JavaScript code. Then that JavaScript code can be used for whatever purposes JavaScript code is usually good for, but large parts of the behavior of that code can be implemented in Cene.
