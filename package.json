@@ -3,22 +3,35 @@
   "name": "cene-scaffold",
   "version": "0.0.1",
   "description": "An arbitrary project to try out the Cene programming language.",
-  "homepage": "https://github.com/era-platform/cene-scaffold",
+  "keywords": [
+    "cene"
+  ],
+  "homepage": "https://github.com/era-platform/cene-scaffold#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/era-platform/cene-scaffold.git"
+  },
+  "bugs": {
+    "url": "https://github.com/era-platform/cene-scaffold/issues"
+  },
   "author": {
     "name": "Era organization",
     "url": "https://github.com/era-platform"
   },
-  "dependencies": {
-    "cene": "0.0.44",
-    "cross-spawn": "^7.0.3",
-    "del": "^6.0.0",
-    "gulp": "^4.0.2",
-    "when": "^3.7.8"
-  },
+  "license": "MIT",
   "scripts": {
     "cene": "cene",
+    "gulp": "gulp",
     "clean": "gulp clean",
     "build": "gulp build",
-    "test": "echo 'No tests. Use `npm run build` to verify that the build works.'"
+    "build-debug": "gulp build-debug",
+    "test": "echo 'No tests. Use `npm run build` to verify that the build works.'",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "cene": "0.0.44",
+    "cross-spawn": "^7.0.3",
+    "fs-extra": "^10.0.0",
+    "gulp": "^4.0.2"
   }
 }

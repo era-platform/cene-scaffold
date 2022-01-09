@@ -1,5 +1,5 @@
 \= main.cene (part of Cene Scaffold)
-\= Copyright 2016 Ross Angle. Released under the MIT License.
+\= Copyright 2016-2017 Rocketnia. Released under the MIT License.
 
 (defn js-client-main client
   (let tvary
@@ -164,7 +164,7 @@
 \=
 \=
 \= This sample is executed whenever this project is built, and the
-\= sample outputs are written to fin/tvary-demo.txt.
+\= sample outputs are written to dist/tvary-demo.txt.
 
 \= TODO: See if we should factor this section out into a separate
 \= codebase.
